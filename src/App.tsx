@@ -119,25 +119,10 @@ function App() {
 
   return (
     <div className="app-shell">
-      <header className="site-header">
-        <a className="brand" href="./" aria-label="The Japanese Theorem home">
-          <span className="brand-mark" aria-hidden="true">和</span>
-          <span>Small mathematical wonders<span className="brand-subtitle">AN INTERACTIVE NOTEBOOK</span></span>
-        </a>
-        <span className="header-note"><span className="status-dot" /> Geometry, made tangible</span>
-      </header>
-
       <main>
-        <section className="intro">
-          <div className="eyebrow"><span /> SANGAKU · EXPLORATION 01</div>
-          <h1>The Japanese Theorem<span className="title-dot">.</span></h1>
-          <p>Different triangles. Different circles. <em>The same sum.</em></p>
-        </section>
-
         <nav className="tabs" aria-label="Explorations">
           <button className="tab active" aria-current="page"><span>01</span> The invariant</button>
           <button className="tab upcoming" disabled>More explorations <span className="soon">COMING LATER</span></button>
-          <span className="tab-note">A little rearrangement. A lovely surprise.</span>
         </nav>
 
         <div className="exploration-layout">
