@@ -45,8 +45,27 @@ Changing the vertex placement changes the polygon and can change the total.
 Changing only its triangulation preserves the total. Seeds need not give unique
 triangulations, especially for polygons with few vertices.
 
-The notebook has one working tab. The disabled future-tab placeholder is
-deliberate; further explorations are not implemented yet.
+## The incircle tab
+
+The second tab starts with three seeded points, not a prescribed circle. Drag
+vertices A, B, and C freely, or focus a vertex and use arrow keys (Shift for
+larger steps). Both tabs retain their state when switching.
+
+Toggle the circumcircle, incircle, perpendicular side bisectors, angle bisectors,
+centers, radius segments, and Carnot distances independently. Perpendicular
+bisectors meet at the circumcenter O; internal angle bisectors meet at the
+incenter I. Bottom readouts calculate the circumradius R and inradius r live,
+in diagram units (100 drawing-coordinate units = 1 displayed unit).
+
+Carnot distances are signed perpendicular distances from O to the side lines.
+They are negative when O and the opposite vertex are on different sides of the
+line. The optional panel computes their sum independently of R + r, including
+obtuse triangles. This is a construction aid, not a scripted proof walkthrough.
+
+Collinear or overlapping vertices show an explicit message and unavailable
+radius readouts rather than invalid circles. Fit circles adjusts the square
+view without moving the vertices or changing any lengths. Reset triangle
+restores the selected seed and the original view.
 
 ## Validate
 
@@ -61,4 +80,6 @@ npm run test:e2e
 Geometry tests cover every supported vertex count and all 625 seed pairs,
 tangency, area coverage, and evolving forced constraints. Browser tests cover
 live totals, drag and keyboard interactions, constraint replacement, resets,
-visibility, limits, and mobile layout.
+visibility, limits, mobile layout, and triangle-layer controls. Free-triangle
+tests cover circle construction, bisectors, degeneracy, fitting, and the signed
+Carnot identity for acute, right, and obtuse triangles in both orientations.

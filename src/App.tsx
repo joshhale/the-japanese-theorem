@@ -5,6 +5,7 @@ import {
   referenceSum, triangleEdges, triangulate,
 } from './geometry'
 import type { Edge, Point } from './geometry'
+import TriangleExplorer from './TriangleExplorer'
 import './App.css'
 
 const COLORS = ['#d47352', '#487d82', '#9c8644', '#8476a5', '#64815c', '#af6384']
@@ -35,7 +36,7 @@ function Slider({ label, value, min, max, onChange, description, formatValue }: 
   )
 }
 
-function App() {
+function PolygonExplorer() {
   const [configuration, setConfiguration] = useState({ count: 8, placementSeed: 7, triangulationSeed: 1 })
   const { count, placementSeed, triangulationSeed } = configuration
   const [triangles, setTriangles] = useState(() => triangulate(8, 1))
@@ -128,13 +129,7 @@ function App() {
   }
 
   return (
-    <div className="app-shell">
-      <main>
-        <nav className="tabs" aria-label="Explorations">
-          <button className="tab active" aria-current="page"><span>01</span> The invariant</button>
-          <button className="tab upcoming" disabled>More explorations <span className="soon">COMING LATER</span></button>
-        </nav>
-
+    <>
         <div className="exploration-layout">
           <section className="drawing-card" aria-label="Interactive cyclic polygon">
             <div className="drawing-header">
@@ -312,9 +307,32 @@ function App() {
           <p>For a fixed polygon inscribed in a circle, the sum of the triangles’ inradii is independent of its triangulation.<br /><span>New vertex placement changes the polygon, so it can change the sum. Incircle areas are not the invariant.</span></p>
           <span className="footer-tag">THE JAPANESE THEOREM</span>
         </footer>
-      </main>
-    </div>
+    </>
   )
+}
+
+function App() {
+  const [activeTab, setActiveTab] = useState(0)
+  const tabRefs = useRef<(HTMLButtonElement | null)[]>([])
+  return <div className="app-shell"><main>
+    <nav className="tabs" role="tablist" aria-label="Explorations">
+      {['The invariant', 'The incircle'].map((label, index) => (
+        <button key={label} ref={(node) => { tabRefs.current[index] = node }}
+          id={`tab-${index}`} role="tab" aria-selected={activeTab === index} aria-controls={`panel-${index}`}
+          tabIndex={activeTab === index ? 0 : -1} className={`tab${activeTab === index ? ' active' : ''}`}
+          onClick={() => setActiveTab(index)}
+          onKeyDown={(event) => {
+            if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return
+            event.preventDefault()
+            const next = event.key === 'Home' ? 0 : event.key === 'End' ? 1 : 1 - index
+            setActiveTab(next)
+            tabRefs.current[next]?.focus()
+          }}><span>{String(index + 1).padStart(2, '0')}</span>{label}</button>
+      ))}
+    </nav>
+    <section id="panel-0" role="tabpanel" aria-labelledby="tab-0" hidden={activeTab !== 0}><PolygonExplorer /></section>
+    <section id="panel-1" role="tabpanel" aria-labelledby="tab-1" hidden={activeTab !== 1}><TriangleExplorer /></section>
+  </main></div>
 }
 
 export default App

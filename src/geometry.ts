@@ -2,7 +2,7 @@ export type Point = { x: number; y: number }
 export type Edge = readonly [number, number]
 export type Triangle = readonly [number, number, number]
 
-function randomGenerator(seed: number) {
+export function randomGenerator(seed: number) {
   let state = seed
   return () => {
     state += 0x6d2b79f5

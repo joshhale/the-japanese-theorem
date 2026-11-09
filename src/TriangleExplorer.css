@@ -1,0 +1,57 @@
+.triangle-diagram { display: block; width: 100%; aspect-ratio: 1; touch-action: none; user-select: none; }
+.triangle-diagram line, .triangle-diagram path, .triangle-diagram circle, .free-triangle-boundary { vector-effect: non-scaling-stroke; }
+.triangle-diagram text { font-family: Georgia, serif; paint-order: stroke; stroke: #fdfcf8; stroke-width: 3px; stroke-linejoin: round; pointer-events: none; }
+.triangle-circumcircle { fill: none; stroke: #487d82; stroke-width: 1.5; }
+.triangle-incircle { fill: #d4735220; stroke: #bd6b4d; stroke-width: 1.8; }
+.free-triangle-boundary { fill: #54766e06; stroke: #364d50; stroke-width: 1.8; stroke-linejoin: round; pointer-events: none; }
+.perpendicular-bisector { stroke: #487d82; stroke-width: 1.1; stroke-dasharray: 6 5; opacity: 0.7; }
+.angle-bisector { stroke: #bd6b4d; stroke-width: 1.3; stroke-dasharray: 3 4; }
+.circumcenter-marker { fill: #487d82; }
+.incenter-marker { fill: #bd6b4d; }
+.outer-radius { fill: #487d82; stroke: #487d82; }
+.inner-radius { fill: #bd6b4d; stroke: #bd6b4d; }
+.outer-radius line, .inner-radius line { stroke-width: 2; }
+.carnot-distance { color: #8476a5; fill: currentColor; }
+.carnot-distance line, .carnot-distance path { stroke: currentColor; stroke-width: 1.7; fill: none; }
+.carnot-distance.negative line { stroke-dasharray: 5 4; }
+.triangle-vertex { cursor: grab; outline: none; }
+.triangle-vertex.moving { cursor: grabbing; }
+.triangle-vertex-hit { fill: transparent; }
+.triangle-vertex-dot { fill: #fdfcf8; stroke: #344f50; stroke-width: 2; pointer-events: none; }
+.triangle-vertex text { fill: #344f50; text-anchor: middle; dominant-baseline: middle; }
+.triangle-vertex:hover .triangle-vertex-dot, .triangle-vertex:focus-visible .triangle-vertex-dot, .triangle-vertex.moving .triangle-vertex-dot { fill: #bd6b4d; stroke: #bd6b4d; }
+.triangle-vertex:focus-visible .triangle-vertex-hit { stroke: #bd6b4d; stroke-width: 1.5; stroke-dasharray: 3 3; }
+.legend-circle.outer-legend { border-color: #487d82; background: transparent; }
+.layer-toggles { display: grid; gap: 8px; }
+.layer-toggles .circle-toggle { padding: 12px; }
+.layer-toggles .switch { flex-shrink: 0; }
+.layer-dot { display: block; width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+.triangle-actions { display: flex; gap: 10px; margin-top: 20px; }
+.triangle-actions button { background: #fbfbf5; color: var(--ink); border: 1px solid var(--border); border-radius: 5px; padding: 10px; cursor: pointer; font-size: 11px; flex: 1; }
+.triangle-control-note { color: var(--muted); font-size: 11px; line-height: 1.7; margin: 17px 0 0; }
+.view-notice { font-size: 11px; color: #a1663f; line-height: 1.7; }
+.circle-readouts { margin-top: 23px; display: grid; grid-template-columns: 1fr 1fr; border: 1px solid #d5ddd0; border-radius: 9px; background: #edf1e8; }
+.circle-readout { padding: 24px; min-width: 0; }
+.circle-readout + .circle-readout { border-left: 1px solid #d5ddd0; }
+.circle-readout > div { display: flex; gap: 14px; align-items: baseline; margin: 16px 0 10px; font-family: Georgia, serif; }
+.circle-readout > div > span { font-size: 23px; font-style: italic; }
+.circle-readout output { font-size: clamp(26px, 3vw, 37px); font-variant-numeric: tabular-nums; }
+.circle-readout small { font-size: 14px; color: var(--muted); }
+.circle-readout p { color: var(--muted); font-size: 11px; margin: 0; }
+.outer-readout .eyebrow { color: #487d82; }
+.inner-readout .eyebrow { color: #a46246; }
+.carnot-readout { margin-top: 18px; border: 1px solid var(--border); border-radius: 8px; padding: 24px; background: #fdfcf8; }
+.carnot-equation { display: flex; align-items: baseline; gap: 20px; font-family: Georgia, serif; font-size: 23px; margin: 18px 0; }
+.carnot-values { display: flex; gap: 20px; flex-wrap: wrap; font-size: 13px; font-variant-numeric: tabular-nums; line-height: 1.8; }
+.carnot-readout p { margin: 12px 0 0; font-size: 10px; color: var(--muted); line-height: 1.7; }
+@media (max-width: 740px) {
+  .controls.triangle-controls { display: block; }
+  .triangle-controls .panel-heading { margin-bottom: 20px; }
+  .circle-readout { padding: 18px; }
+  .circle-readout > div { gap: 8px; flex-wrap: wrap; }
+  .circle-readout output { font-size: 27px; }
+  .circle-readout p { font-size: 10px; line-height: 1.6; }
+  .carnot-readout { padding: 18px; }
+  .carnot-equation { gap: 12px; font-size: 20px; }
+  .carnot-values { gap: 8px 18px; font-size: 12px; }
+}
