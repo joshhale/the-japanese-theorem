@@ -18,6 +18,10 @@ npm run dev
 - Choose 3 to 40 vertices and one of 25 deterministic seeds for vertex placement
   and triangulation.
 - Show or hide incircles. Hover or focus a summand to highlight its triangle.
+- Use the Fan vertex slider below Triangulation to shade triangles containing
+  the chosen vertex and highlight that vertex. `0` turns shading off. This does
+  not change any edges or radii. The choice persists across seed changes;
+  reducing the vertex count past the selected vertex turns shading off.
 - Drag between nonadjacent vertices to force a diagonal. Only existing edges
   crossing it are removed, whether forced or random. All compatible edges stay,
   and untouched triangles keep their colors and radius labels.

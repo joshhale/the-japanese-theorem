@@ -20,6 +20,10 @@
 .center-cross { stroke: #bfc6bf; stroke-width: 1; }
 .polygon-boundary { fill: none; stroke: #364d50; stroke-width: 1.8; stroke-linejoin: round; pointer-events: none; }
 .triangle-fill { transition: fill-opacity 140ms; pointer-events: none; }
+.fan-shading .triangle-fill { fill: #b8bdb4; fill-opacity: 0.035; }
+.fan-shading .triangle-fill.active { fill-opacity: 0.14; }
+.fan-shading .triangle-fill.fan-triangle { fill: #54766e; fill-opacity: 0.24; }
+.fan-shading .triangle-fill.fan-triangle.active { fill-opacity: 0.36; }
 .diagonal { stroke: #81928d; stroke-width: 1.1; stroke-dasharray: 4 5; pointer-events: none; }
 .diagonal.forced { stroke: #b8603f; stroke-width: 2.6; stroke-dasharray: none; }
 .radius-label { font: italic 15px Georgia, serif; text-anchor: middle; pointer-events: none; }
@@ -30,6 +34,9 @@
 .vertex:focus-visible .vertex-hit { stroke: #bb6749; stroke-width: 1.5; stroke-dasharray: 3 3; }
 .vertex-label { font: 13px Georgia, serif; text-anchor: middle; dominant-baseline: middle; fill: #4c5f5c; pointer-events: none; }
 .vertex-label.small { font-size: 10px; }
+.fan-apex-ring { fill: #fdfcf8; stroke: #54766e; stroke-width: 2.5; pointer-events: none; }
+.fan-apex .vertex-dot { fill: #54766e; stroke: #54766e; r: 5.5; }
+.fan-apex .vertex-label { fill: #3a6258; font-weight: 700; }
 .drag-preview { stroke: #bb6749; stroke-width: 2.5; stroke-dasharray: 6 4; pointer-events: none; }
 .geometry.dragging { cursor: crosshair; }
 .drawing-footer { display: flex; justify-content: space-between; align-items: center; padding: 16px 24px; border-top: 1px solid #eeeee7; gap: 10px; }

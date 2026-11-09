@@ -16,19 +16,20 @@ const screen = (point: Point) => ({
 })
 const vertexName = (index: number) => index < 26 ? String.fromCharCode(65 + index) : `V${index + 1}`
 
-function Slider({ label, value, min, max, onChange, description }: {
+function Slider({ label, value, min, max, onChange, description, formatValue }: {
   label: string; value: number; min: number; max: number
   onChange: (value: number) => void; description: string
+  formatValue?: (value: number) => string
 }) {
   return (
     <div className="slider-control">
       <label>
-        <span className="control-heading"><span>{label}</span><output>{value.toString().padStart(2, '0')}</output></span>
-        <input type="range" aria-label={label} min={min} max={max} value={value}
+        <span className="control-heading"><span>{label}</span><output>{formatValue ? formatValue(value) : value.toString().padStart(2, '0')}</output></span>
+        <input type="range" aria-label={label} aria-valuetext={formatValue?.(value)} min={min} max={max} step={1} value={value}
           style={{ '--progress': `${(value - min) / (max - min) * 100}%` } as React.CSSProperties}
           onChange={(event) => onChange(Number(event.target.value))} />
       </label>
-      <div className="range-endpoints"><span>{min}</span><span>{max}</span></div>
+      <div className="range-endpoints"><span>{formatValue ? formatValue(min) : min}</span><span>{formatValue ? formatValue(max) : max}</span></div>
       <p>{description}</p>
     </div>
   )
@@ -40,6 +41,8 @@ function App() {
   const [triangles, setTriangles] = useState(() => triangulate(8, 1))
   const [forced, setForced] = useState<Edge[]>([])
   const [showCircles, setShowCircles] = useState(true)
+  const [fanVertex, setFanVertex] = useState(0)
+  const fanIndex = fanVertex === 0 ? null : fanVertex - 1
   const [activeTriangle, setActiveTriangle] = useState<number | null>(null)
   const [drag, setDrag] = useState<{ start: number; point: Point; target: number | null } | null>(null)
   const [keyboardStart, setKeyboardStart] = useState<number | null>(null)
@@ -59,6 +62,7 @@ function App() {
   function changeConfiguration(change: Partial<typeof configuration>) {
     const next = { ...configuration, ...change }
     setConfiguration(next)
+    if (fanVertex > next.count) setFanVertex(0)
     setTriangles(triangulate(next.count, next.triangulationSeed))
     setForced([])
     setDrag(null)
@@ -132,7 +136,7 @@ function App() {
               <span className="unit-label">CIRCUMRADIUS <strong>R = 1</strong></span>
             </div>
             <div className="svg-container">
-              <svg ref={svgRef} viewBox="0 0 640 640" className={`geometry${drag ? ' dragging' : ''}`}
+              <svg ref={svgRef} viewBox="0 0 640 640" className={`geometry${drag ? ' dragging' : ''}${fanIndex !== null ? ' fan-shading' : ''}`}
                 aria-label={`Cyclic ${count}-gon with ${triangles.length} triangles. Drag between vertices to force a diagonal.`}
                 onPointerMove={(event) => {
                   if (!drag) return
@@ -170,7 +174,7 @@ function App() {
                   <polygon key={triangle.join('-')} data-testid="triangle"
                     points={triangle.map((vertex) => { const p = screen(vertices[vertex]); return `${p.x},${p.y}` }).join(' ')}
                     fill={COLORS[index % COLORS.length]} fillOpacity={activeTriangle === index ? 0.23 : 0.055}
-                    className="triangle-fill" />
+                    className={`triangle-fill${fanIndex !== null && triangle.includes(fanIndex) ? ' fan-triangle' : ''}${activeTriangle === index ? ' active' : ''}`} />
                 ))}
                 <polygon points={vertices.map((vertex) => { const p = screen(vertex); return `${p.x},${p.y}` }).join(' ')}
                   className="polygon-boundary" />
@@ -204,7 +208,8 @@ function App() {
                   const label = { x: CENTER + vertex.x * (RADIUS + 26), y: CENTER + vertex.y * (RADIUS + 26) }
                   const selected = keyboardStart === index || drag?.start === index || drag?.target === index
                   return <g key={index} role="button" tabIndex={0} aria-label={`Vertex ${vertexName(index)}`}
-                    aria-pressed={selected} className={`vertex${selected ? ' selected' : ''}`}
+                    aria-description={fanIndex === index ? 'Selected fan vertex' : undefined}
+                    aria-pressed={selected} className={`vertex${selected ? ' selected' : ''}${fanIndex === index ? ' fan-apex' : ''}`}
                     onKeyDown={(event) => vertexKey(event, index)}
                     onPointerDown={(event) => {
                       if (event.button !== 0 || !event.isPrimary) return
@@ -214,6 +219,7 @@ function App() {
                       setDrag({ start: index, point, target: index })
                     }}>
                     <circle cx={point.x} cy={point.y} r={count > 25 ? 10 : 14} className="vertex-hit" />
+                    {fanIndex === index && <circle cx={point.x} cy={point.y} r="12" className="fan-apex-ring" />}
                     <circle cx={point.x} cy={point.y} r={selected ? 6.5 : 4.5} className="vertex-dot" />
                     <text x={label.x} y={label.y} className={`vertex-label${count > 26 ? ' small' : ''}`}>{vertexName(index)}</text>
                   </g>
@@ -234,6 +240,9 @@ function App() {
               onChange={(value) => changeConfiguration({ placementSeed: value })} description="A new seed, a new cyclic polygon." />
             <Slider label="Triangulation" value={triangulationSeed} min={1} max={25}
               onChange={(value) => changeConfiguration({ triangulationSeed: value })} description="Same vertices. A different way to divide them." />
+            <Slider label="Fan vertex" value={fanVertex} min={0} max={count}
+              onChange={setFanVertex} formatValue={(value) => value === 0 ? '0' : vertexName(value - 1)}
+              description="Shade triangles containing this vertex. 0 turns shading off." />
 
             <button className={`circle-toggle${showCircles ? ' on' : ''}`} aria-pressed={showCircles}
               onClick={() => setShowCircles(!showCircles)}>

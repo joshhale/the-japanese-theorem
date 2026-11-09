@@ -22,6 +22,82 @@ async function diagonalKeys(page: Page) {
   return page.locator('.diagonal').evaluateAll((nodes) => nodes.map((node) => node.getAttribute('data-edge')!).sort())
 }
 
+async function expectFanShading(page: Page, name: string) {
+  const apex = page.getByRole('button', { name: `Vertex ${name}`, exact: true })
+  await expect(apex).toHaveClass(/fan-apex/)
+  await expect(page.locator('.fan-apex')).toHaveCount(1)
+  const coordinate = await apex.locator('.vertex-dot').evaluate((node) =>
+    `${node.getAttribute('cx')},${node.getAttribute('cy')}`)
+  const correctMembership = await page.getByTestId('triangle').evaluateAll((nodes, point) =>
+    nodes.every((node) => node.classList.contains('fan-triangle') === node.getAttribute('points')!.split(' ').includes(point)), coordinate)
+  expect(correctMembership).toBe(true)
+  const fills = await page.locator('.fan-triangle').evaluateAll((nodes) => nodes.map((node) => getComputedStyle(node).fill))
+  expect(fills.length).toBeGreaterThan(0)
+  expect(new Set(fills).size).toBe(1)
+  await expect.poll(() => page.locator('.fan-triangle').evaluateAll((nodes) =>
+    nodes.every((node) => Number(getComputedStyle(node).fillOpacity) >= 0.24))).toBe(true)
+}
+
+test('fan selection shades only incident triangles and leaves the construction unchanged', async ({ page }) => {
+  await page.goto('/')
+  const fan = page.getByRole('slider', { name: 'Fan vertex', exact: true })
+  await expect(fan).toHaveAttribute('aria-valuetext', '0')
+  await expect(page.locator('.fan-triangle, .fan-apex')).toHaveCount(0)
+  await dragEdge(page, 'B', 'E')
+  const before = await diagonalKeys(page)
+  const initialSum = await page.getByTestId('radius-sum').textContent()
+  await setSlider(page, 'Fan vertex', 1)
+  await expectFanShading(page, 'A')
+  await expect(fan).toHaveAttribute('aria-valuetext', 'A')
+  await setSlider(page, 'Fan vertex', 4)
+  await expectFanShading(page, 'D')
+  expect(await diagonalKeys(page)).toEqual(before)
+  await expect(page.getByTestId('forced-edge')).toHaveCount(1)
+  await expect(page.getByTestId('radius-sum')).toHaveText(initialSum!)
+  await setSlider(page, 'Fan vertex', 0)
+  await expect(page.locator('.fan-shading, .fan-triangle, .fan-apex')).toHaveCount(0)
+  expect(await diagonalKeys(page)).toEqual(before)
+})
+
+test('fan shading follows manual edits and remains selected across random seeds', async ({ page }) => {
+  await page.goto('/')
+  await setSlider(page, 'Fan vertex', 1)
+  await dragEdge(page, 'A', 'D')
+  await expectFanShading(page, 'A')
+  await setSlider(page, 'Triangulation', 15)
+  await expectFanShading(page, 'A')
+  await setSlider(page, 'Vertex placement', 12)
+  await expectFanShading(page, 'A')
+  await page.getByRole('button', { name: 'Hide incircles' }).click()
+  await expectFanShading(page, 'A')
+  await expect(page.getByTestId('incircle')).toHaveCount(0)
+})
+
+test('fan slider uses vertex names beyond Z and handles a shrinking vertex count', async ({ page }) => {
+  await page.goto('/')
+  await setSlider(page, 'Vertices', 40)
+  const fan = page.getByRole('slider', { name: 'Fan vertex', exact: true })
+  await setSlider(page, 'Fan vertex', 26)
+  await expect(fan).toHaveAttribute('aria-valuetext', 'Z')
+  await expectFanShading(page, 'Z')
+  await fan.press('ArrowRight')
+  await expect(fan).toHaveAttribute('aria-valuetext', 'V27')
+  await expectFanShading(page, 'V27')
+  await fan.press('ArrowRight')
+  await expect(fan).toHaveAttribute('aria-valuetext', 'V28')
+  await expectFanShading(page, 'V28')
+  await setSlider(page, 'Vertices', 28)
+  await expect(fan).toHaveAttribute('max', '28')
+  await expectFanShading(page, 'V28')
+  await setSlider(page, 'Vertices', 27)
+  await expect(fan).toHaveValue('0')
+  await expect(page.locator('.fan-shading, .fan-triangle, .fan-apex')).toHaveCount(0)
+  await setSlider(page, 'Vertices', 3)
+  await fan.press('End')
+  await expect(fan).toHaveAttribute('aria-valuetext', 'C')
+  await expectFanShading(page, 'C')
+})
+
 test('computes the displayed sum from the live incircles, not the reference', async ({ page }) => {
   const errors: string[] = []
   page.on('pageerror', (error) => errors.push(error.message))
