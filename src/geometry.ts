@@ -94,6 +94,23 @@ export function triangleEdges(triangles: readonly Triangle[]): Edge[] {
   return [...edges.values()]
 }
 
+export function insertDiagonal(count: number, seed: number, triangles: readonly Triangle[], edge: Edge): Triangle[] {
+  const retained = triangleEdges(triangles).filter((item) => !isBoundary(item, count) && !edgesCross(item, edge))
+  if (retained.some((item) => edgeKey(item) === edgeKey(edge))) return [...triangles]
+
+  const rebuilt = triangulate(count, seed, [...retained, edge])
+  const triangleKey = (triangle: Triangle) => [...triangle].sort((a, b) => a - b).join('-')
+  const previousKeys = new Set(triangles.map(triangleKey))
+  const rebuiltKeys = new Set(rebuilt.map(triangleKey))
+  const replacements = rebuilt.filter((triangle) => !previousKeys.has(triangleKey(triangle)))
+  let replacementIndex = 0
+
+  // Keep untouched triangles in their slots so their colors and radius labels stay put.
+  return triangles.map((triangle) => rebuiltKeys.has(triangleKey(triangle))
+    ? triangle
+    : replacements[replacementIndex++])
+}
+
 export function incircle(points: readonly Point[], [a, b, c]: Triangle) {
   const A = points[a]
   const B = points[b]

@@ -1,5 +1,7 @@
 import { expect, test } from '@playwright/test'
 import type { Page } from '@playwright/test'
+import { edgesCross } from '../src/geometry'
+import type { Edge } from '../src/geometry'
 
 async function setSlider(page: Page, name: string, value: number) {
   const slider = page.getByRole('slider', { name, exact: true })
@@ -14,6 +16,10 @@ async function dragEdge(page: Page, start: string, end: string) {
   await page.mouse.down()
   await page.mouse.move(to.x + to.width / 2, to.y + to.height / 2, { steps: 12 })
   await page.mouse.up()
+}
+
+async function diagonalKeys(page: Page) {
+  return page.locator('.diagonal').evaluateAll((nodes) => nodes.map((node) => node.getAttribute('data-edge')!).sort())
 }
 
 test('computes the displayed sum from the live incircles, not the reference', async ({ page }) => {
@@ -56,6 +62,34 @@ test('supports dragging, replaces crossing constraints, keeps compatible ones, a
   await dragEdge(page, 'A', 'D')
   await setSlider(page, 'Vertex placement', 8)
   await expect(page.getByTestId('forced-edge')).toHaveCount(0)
+})
+
+test('manual insertion retains every noncrossing edge and unlocking leaves the geometry alone', async ({ page }) => {
+  await page.goto('/')
+  for (const [a, b] of [[0, 3], [0, 5], [1, 4], [1, 4]] as Edge[]) {
+    const before = await diagonalKeys(page)
+    await dragEdge(page, String.fromCharCode(65 + a), String.fromCharCode(65 + b))
+    const after = await diagonalKeys(page)
+    expect(after).toContain(`${a}-${b}`)
+    expect(after).toHaveLength(5)
+    for (const key of before) {
+      const [c, d] = key.split('-').map(Number)
+      expect(after.includes(key)).toBe(!edgesCross([a, b], [c, d]))
+    }
+    const sum = await page.getByTestId('incircle').evaluateAll((nodes) =>
+      nodes.reduce((total, node) => total + Number(node.getAttribute('r')) / 247, 0))
+    await expect(page.getByTestId('radius-sum')).toHaveText(sum.toFixed(6))
+  }
+  const edited = await diagonalKeys(page)
+  await page.getByRole('button', { name: 'Remove diagonal B-E', exact: true }).click()
+  expect(await diagonalKeys(page)).toEqual(edited)
+  await page.getByRole('button', { name: 'Clear forced diagonals' }).click()
+  expect(await diagonalKeys(page)).toEqual(edited)
+  await setSlider(page, 'Triangulation', 2)
+  const reset = await diagonalKeys(page)
+  await page.reload()
+  await setSlider(page, 'Triangulation', 2)
+  expect(await diagonalKeys(page)).toEqual(reset)
 })
 
 test('supports keyboard constraints, cancellation, removing edges, and invalid sides', async ({ page }) => {

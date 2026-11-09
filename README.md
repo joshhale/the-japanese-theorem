@@ -18,9 +18,11 @@ npm run dev
 - Choose 3 to 40 vertices and one of 25 deterministic seeds for vertex placement
   and triangulation.
 - Show or hide incircles. Hover or focus a summand to highlight its triangle.
-- Drag between nonadjacent vertices to force a diagonal. Crossing forced
-  diagonals are removed; compatible ones stay. Remove individual diagonals using
-  their chips or clear them all.
+- Drag between nonadjacent vertices to force a diagonal. Only existing edges
+  crossing it are removed, whether forced or random. All compatible edges stay,
+  and untouched triangles keep their colors and radius labels.
+- Unlock individual diagonals using their chips or clear all locks. Unlocking
+  does not redraw the triangulation; changing a seed generates a fresh one.
 - Keyboard alternative: Tab to a vertex, press Enter or Space, then repeat at
   the other endpoint. Escape cancels the selection.
 - Changing either seed or the vertex count clears forced diagonals.

@@ -1,7 +1,7 @@
 import { useMemo, useRef, useState } from 'react'
 import type { KeyboardEvent, PointerEvent } from 'react'
 import {
-  createVertices, edgeKey, forceEdge, incircle, isBoundary,
+  createVertices, edgeKey, forceEdge, incircle, insertDiagonal, isBoundary,
   referenceSum, triangleEdges, triangulate,
 } from './geometry'
 import type { Edge, Point } from './geometry'
@@ -35,9 +35,9 @@ function Slider({ label, value, min, max, onChange, description }: {
 }
 
 function App() {
-  const [count, setCount] = useState(8)
-  const [placementSeed, setPlacementSeed] = useState(7)
-  const [triangulationSeed, setTriangulationSeed] = useState(1)
+  const [configuration, setConfiguration] = useState({ count: 8, placementSeed: 7, triangulationSeed: 1 })
+  const { count, placementSeed, triangulationSeed } = configuration
+  const [triangles, setTriangles] = useState(() => triangulate(8, 1))
   const [forced, setForced] = useState<Edge[]>([])
   const [showCircles, setShowCircles] = useState(true)
   const [activeTriangle, setActiveTriangle] = useState<number | null>(null)
@@ -47,7 +47,6 @@ function App() {
   const svgRef = useRef<SVGSVGElement>(null)
 
   const vertices = useMemo(() => createVertices(count, placementSeed), [count, placementSeed])
-  const triangles = useMemo(() => triangulate(count, triangulationSeed, forced), [count, triangulationSeed, forced])
   const circles = triangles.map((triangle) => incircle(vertices, triangle))
   const edges = triangleEdges(triangles).filter((edge) => !isBoundary(edge, count))
   const sum = circles.reduce((total, circle) => total + circle.radius, 0)
@@ -57,8 +56,10 @@ function App() {
     ? [...circles.slice(0, 9).map((_, index) => index), -1, ...circles.slice(-9).map((_, index) => circles.length - 9 + index)]
     : circles.map((_, index) => index)
 
-  function changeConfiguration(setValue: (value: number) => void, value: number) {
-    setValue(value)
+  function changeConfiguration(change: Partial<typeof configuration>) {
+    const next = { ...configuration, ...change }
+    setConfiguration(next)
+    setTriangles(triangulate(next.count, next.triangulationSeed))
     setForced([])
     setDrag(null)
     setKeyboardStart(null)
@@ -78,6 +79,7 @@ function App() {
     }
     const next = forceEdge(forced, [a, b])
     const removed = forced.filter((edge) => !next.some((item) => edgeKey(item) === edgeKey(edge))).length
+    setTriangles(insertDiagonal(count, triangulationSeed, triangles, [a, b]))
     setForced(next)
     setActiveTriangle(null)
     setMessage(`Forced ${vertexName(a)}–${vertexName(b)}.${removed ? ` Replaced ${removed} crossing diagonal${removed === 1 ? '' : 's'}.` : ' Compatible diagonals kept.'}`)
@@ -242,11 +244,11 @@ function App() {
           <aside className="controls" aria-label="Exploration controls">
             <div className="panel-heading"><span className="eyebrow">YOUR CONSTRUCTION</span><span className="tiny-cross">+</span></div>
             <Slider label="Vertices" value={count} min={3} max={40}
-              onChange={(value) => changeConfiguration(setCount, value)} description={`${count} vertices make ${count - 2} triangles.`} />
+              onChange={(value) => changeConfiguration({ count: value })} description={`${count} vertices make ${count - 2} triangles.`} />
             <Slider label="Vertex placement" value={placementSeed} min={1} max={25}
-              onChange={(value) => changeConfiguration(setPlacementSeed, value)} description="A new seed, a new cyclic polygon." />
+              onChange={(value) => changeConfiguration({ placementSeed: value })} description="A new seed, a new cyclic polygon." />
             <Slider label="Triangulation" value={triangulationSeed} min={1} max={25}
-              onChange={(value) => changeConfiguration(setTriangulationSeed, value)} description="Same vertices. A different way to divide them." />
+              onChange={(value) => changeConfiguration({ triangulationSeed: value })} description="Same vertices. A different way to divide them." />
 
             <button className={`circle-toggle${showCircles ? ' on' : ''}`} aria-pressed={showCircles}
               onClick={() => setShowCircles(!showCircles)}>
@@ -256,7 +258,7 @@ function App() {
 
             <section className="forced-panel" aria-label="Forced diagonals">
               <div className="forced-heading"><h2>Make it your own</h2><span className="count-badge">{forced.length} forced</span></div>
-              <p>Drag between two vertices to lock in a diagonal. A new crossing diagonal replaces the old one.</p>
+              <p>Drag between two vertices to lock in a diagonal. Only crossing edges are replaced; all other edges stay put.</p>
               <p className="keyboard-hint">Keyboard: Tab to a vertex, Enter to select each end. Esc to cancel.</p>
               {forced.length > 0 && <div className="edge-chips">{forced.map((edge) => (
                 <button key={edgeKey(edge)} aria-label={`Remove diagonal ${vertexName(edge[0])}-${vertexName(edge[1])}`}

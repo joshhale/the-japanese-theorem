@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
-  createVertices, edgeKey, edgesCross, forceEdge, incircle,
+  createVertices, edgeKey, edgesCross, forceEdge, incircle, insertDiagonal,
   isBoundary, referenceSum, triangleEdges, triangulate,
 } from './geometry'
 import type { Edge, Point } from './geometry'
@@ -78,6 +78,39 @@ describe('seeded cyclic triangulations', () => {
 })
 
 describe('forced diagonals', () => {
+  it('only removes edges crossed by an inserted diagonal and keeps untouched triangle slots', () => {
+    for (const count of [4, 8, 25, 40]) {
+      const points = createVertices(count, 5)
+      for (const seed of [1, 9, 25]) {
+        const before = triangulate(count, seed)
+        const previousEdges = triangleEdges(before).filter((edge) => !isBoundary(edge, count))
+        for (let a = 0; a < count; a++) {
+          for (let b = a + 1; b < count; b++) {
+            const edge: Edge = [a, b]
+            if (isBoundary(edge, count)) continue
+            const after = insertDiagonal(count, seed, before, edge)
+            const nextEdges = triangleEdges(after).filter((item) => !isBoundary(item, count))
+            const keys = new Set(nextEdges.map(edgeKey))
+            expect(after).toHaveLength(count - 2)
+            expect(nextEdges).toHaveLength(count - 3)
+            expect(keys.has(edgeKey(edge))).toBe(true)
+            for (const item of previousEdges) {
+              expect(keys.has(edgeKey(item))).toBe(!edgesCross(item, edge))
+            }
+            before.forEach((triangle, index) => {
+              if (triangleEdges([triangle]).every((item) => !edgesCross(item, edge))) {
+                expect(after[index]).toBe(triangle)
+              }
+            })
+            expect(nextEdges.every((item) => nextEdges.every((other) => !edgesCross(item, other)))).toBe(true)
+            const sum = after.reduce((total, triangle) => total + incircle(points, triangle).radius, 0)
+            expect(sum).toBeCloseTo(referenceSum(points), 11)
+          }
+        }
+      }
+    }
+  })
+
   it('replaces only crossing constraints and does not duplicate reversed edges', () => {
     const edges: Edge[] = [[0, 3], [0, 5], [5, 7]]
     const updated = forceEdge(edges, [1, 4])
@@ -89,13 +122,18 @@ describe('forced diagonals', () => {
   it('honors evolving constraints, including complete fans, without changing the sum', () => {
     for (const count of [4, 8, 25, 40]) {
       let forced: Edge[] = []
+      let triangles = triangulate(count, 1)
       const points = createVertices(count, 5)
       for (let step = 0; step < 100; step++) {
         const edge: Edge = [step % count, (step * 7 + 2) % count]
         if (edge[0] === edge[1] || isBoundary(edge, count)) continue
         forced = forceEdge(forced, edge)
-        const triangles = triangulate(count, step % 25 + 1, forced)
+        const previousEdges = triangleEdges(triangles)
+        triangles = insertDiagonal(count, step % 25 + 1, triangles, edge)
         const actual = triangleEdges(triangles).map(edgeKey)
+        for (const item of previousEdges) {
+          expect(actual.includes(edgeKey(item))).toBe(!edgesCross(item, edge))
+        }
         expect(triangles).toHaveLength(count - 2)
         for (const item of forced) expect(actual).toContain(edgeKey(item))
         const diagonals = triangleEdges(triangles).filter((item) => !isBoundary(item, count))
