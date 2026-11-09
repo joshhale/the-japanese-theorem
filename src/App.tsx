@@ -1,0 +1,311 @@
+import { useMemo, useRef, useState } from 'react'
+import type { KeyboardEvent, PointerEvent } from 'react'
+import {
+  createVertices, edgeKey, forceEdge, incircle, isBoundary,
+  referenceSum, triangleEdges, triangulate,
+} from './geometry'
+import type { Edge, Point } from './geometry'
+import './App.css'
+
+const COLORS = ['#d47352', '#487d82', '#9c8644', '#8476a5', '#64815c', '#af6384']
+const CENTER = 320
+const RADIUS = 247
+const screen = (point: Point) => ({
+  x: CENTER + point.x * RADIUS,
+  y: CENTER + point.y * RADIUS,
+})
+const vertexName = (index: number) => index < 26 ? String.fromCharCode(65 + index) : `V${index + 1}`
+
+function Slider({ label, value, min, max, onChange, description }: {
+  label: string; value: number; min: number; max: number
+  onChange: (value: number) => void; description: string
+}) {
+  return (
+    <div className="slider-control">
+      <label>
+        <span className="control-heading"><span>{label}</span><output>{value.toString().padStart(2, '0')}</output></span>
+        <input type="range" aria-label={label} min={min} max={max} value={value}
+          style={{ '--progress': `${(value - min) / (max - min) * 100}%` } as React.CSSProperties}
+          onChange={(event) => onChange(Number(event.target.value))} />
+      </label>
+      <div className="range-endpoints"><span>{min}</span><span>{max}</span></div>
+      <p>{description}</p>
+    </div>
+  )
+}
+
+function App() {
+  const [count, setCount] = useState(8)
+  const [placementSeed, setPlacementSeed] = useState(7)
+  const [triangulationSeed, setTriangulationSeed] = useState(1)
+  const [forced, setForced] = useState<Edge[]>([])
+  const [showCircles, setShowCircles] = useState(true)
+  const [activeTriangle, setActiveTriangle] = useState<number | null>(null)
+  const [drag, setDrag] = useState<{ start: number; point: Point; target: number | null } | null>(null)
+  const [keyboardStart, setKeyboardStart] = useState<number | null>(null)
+  const [message, setMessage] = useState('Try another triangulation. Watch the sum stay put.')
+  const svgRef = useRef<SVGSVGElement>(null)
+
+  const vertices = useMemo(() => createVertices(count, placementSeed), [count, placementSeed])
+  const triangles = useMemo(() => triangulate(count, triangulationSeed, forced), [count, triangulationSeed, forced])
+  const circles = triangles.map((triangle) => incircle(vertices, triangle))
+  const edges = triangleEdges(triangles).filter((edge) => !isBoundary(edge, count))
+  const sum = circles.reduce((total, circle) => total + circle.radius, 0)
+  const reference = referenceSum(vertices)
+  const invariant = Math.abs(sum - reference) < 1e-10
+  const visibleTerms = circles.length > 20
+    ? [...circles.slice(0, 9).map((_, index) => index), -1, ...circles.slice(-9).map((_, index) => circles.length - 9 + index)]
+    : circles.map((_, index) => index)
+
+  function changeConfiguration(setValue: (value: number) => void, value: number) {
+    setValue(value)
+    setForced([])
+    setDrag(null)
+    setKeyboardStart(null)
+    setActiveTriangle(null)
+    setMessage('Configuration changed. Forced diagonals cleared.')
+  }
+
+  function addDiagonal(a: number, b: number) {
+    setKeyboardStart(null)
+    if (a === b) {
+      setMessage('Choose a different vertex to complete a diagonal.')
+      return
+    }
+    if (isBoundary([a, b], count)) {
+      setMessage('Those vertices already share a polygon side. Choose non-neighboring vertices.')
+      return
+    }
+    const next = forceEdge(forced, [a, b])
+    const removed = forced.filter((edge) => !next.some((item) => edgeKey(item) === edgeKey(edge))).length
+    setForced(next)
+    setActiveTriangle(null)
+    setMessage(`Forced ${vertexName(a)}–${vertexName(b)}.${removed ? ` Replaced ${removed} crossing diagonal${removed === 1 ? '' : 's'}.` : ' Compatible diagonals kept.'}`)
+  }
+
+  function pointerPosition(event: PointerEvent<SVGSVGElement>): Point {
+    const svg = svgRef.current!
+    const point = new DOMPoint(event.clientX, event.clientY).matrixTransform(svg.getScreenCTM()!.inverse())
+    return { x: point.x, y: point.y }
+  }
+
+  function nearestVertex(point: Point): number | null {
+    let nearest: number | null = null
+    let distance = 25
+    vertices.forEach((vertex, index) => {
+      const target = screen(vertex)
+      const candidate = Math.hypot(point.x - target.x, point.y - target.y)
+      if (candidate < distance) {
+        nearest = index
+        distance = candidate
+      }
+    })
+    return nearest
+  }
+
+  function vertexKey(event: KeyboardEvent<SVGGElement>, index: number) {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault()
+      if (keyboardStart === null) {
+        setKeyboardStart(index)
+        setMessage(`Vertex ${vertexName(index)} selected. Tab to another vertex and press Enter.`)
+      } else {
+        addDiagonal(keyboardStart, index)
+      }
+    }
+  }
+
+  return (
+    <div className="app-shell">
+      <header className="site-header">
+        <a className="brand" href="./" aria-label="The Japanese Theorem home">
+          <span className="brand-mark" aria-hidden="true">和</span>
+          <span>Small mathematical wonders<span className="brand-subtitle">AN INTERACTIVE NOTEBOOK</span></span>
+        </a>
+        <span className="header-note"><span className="status-dot" /> Geometry, made tangible</span>
+      </header>
+
+      <main>
+        <section className="intro">
+          <div className="eyebrow"><span /> SANGAKU · EXPLORATION 01</div>
+          <h1>The Japanese Theorem<span className="title-dot">.</span></h1>
+          <p>Different triangles. Different circles. <em>The same sum.</em></p>
+        </section>
+
+        <nav className="tabs" aria-label="Explorations">
+          <button className="tab active" aria-current="page"><span>01</span> The invariant</button>
+          <button className="tab upcoming" disabled>More explorations <span className="soon">COMING LATER</span></button>
+          <span className="tab-note">A little rearrangement. A lovely surprise.</span>
+        </nav>
+
+        <div className="exploration-layout">
+          <section className="drawing-card" aria-label="Interactive cyclic polygon">
+            <div className="drawing-header">
+              <span className="diagram-title">A circle. <strong>{count} vertices.</strong> Endless possibilities.</span>
+              <span className="unit-label">CIRCUMRADIUS <strong>R = 1</strong></span>
+            </div>
+            <div className="svg-container">
+              <svg ref={svgRef} viewBox="0 0 640 640" className={`geometry${drag ? ' dragging' : ''}`}
+                aria-label={`Cyclic ${count}-gon with ${triangles.length} triangles. Drag between vertices to force a diagonal.`}
+                onPointerMove={(event) => {
+                  if (!drag) return
+                  const point = pointerPosition(event)
+                  setDrag({ ...drag, point, target: nearestVertex(point) })
+                }}
+                onPointerUp={(event) => {
+                  if (!drag) return
+                  const target = nearestVertex(pointerPosition(event))
+                  if (target !== null && target !== drag.start) addDiagonal(drag.start, target)
+                  else setMessage('Drag from one vertex to another to force a diagonal.')
+                  setDrag(null)
+                }}
+                onPointerCancel={() => setDrag(null)}
+                onLostPointerCapture={() => setDrag(null)}
+                onKeyDown={(event) => {
+                  if (event.key === 'Escape') {
+                    setDrag(null)
+                    setKeyboardStart(null)
+                    setMessage('Diagonal selection cancelled.')
+                  }
+                }}>
+                <title>The Japanese theorem: explore a cyclic polygon</title>
+                <desc>Colored triangles share a circumcircle. Each triangle has an incircle. The sum of their radii is independent of the triangulation. Vertices can also be selected with Tab and Enter.</desc>
+                <defs>
+                  <pattern id="dot-grid" width="22" height="22" patternUnits="userSpaceOnUse">
+                    <circle cx="1" cy="1" r="0.8" fill="#dcded8" />
+                  </pattern>
+                </defs>
+                <rect width="640" height="640" fill="url(#dot-grid)" />
+                <line x1="305" y1="320" x2="335" y2="320" className="center-cross" />
+                <line x1="320" y1="305" x2="320" y2="335" className="center-cross" />
+                <circle cx={CENTER} cy={CENTER} r={RADIUS} className="circumcircle" />
+                {triangles.map((triangle, index) => (
+                  <polygon key={triangle.join('-')} data-testid="triangle"
+                    points={triangle.map((vertex) => { const p = screen(vertices[vertex]); return `${p.x},${p.y}` }).join(' ')}
+                    fill={COLORS[index % COLORS.length]} fillOpacity={activeTriangle === index ? 0.23 : 0.055}
+                    className="triangle-fill" />
+                ))}
+                <polygon points={vertices.map((vertex) => { const p = screen(vertex); return `${p.x},${p.y}` }).join(' ')}
+                  className="polygon-boundary" />
+                {edges.map((edge) => {
+                  const a = screen(vertices[edge[0]])
+                  const b = screen(vertices[edge[1]])
+                  const isForced = forced.some((item) => edgeKey(item) === edgeKey(edge))
+                  return <line key={edgeKey(edge)} x1={a.x} y1={a.y} x2={b.x} y2={b.y}
+                    className={isForced ? 'diagonal forced' : 'diagonal'}
+                    data-testid={isForced ? 'forced-edge' : 'diagonal'} data-edge={edgeKey(edge)} />
+                })}
+                {showCircles && circles.map((circle, index) => {
+                  const point = screen(circle)
+                  return <g key={triangles[index].join('-')} className="incircle-group"
+                    onPointerEnter={() => { if (!drag) setActiveTriangle(index) }}
+                    onPointerLeave={() => setActiveTriangle(null)}>
+                    <circle data-testid="incircle" cx={point.x} cy={point.y} r={circle.radius * RADIUS}
+                      stroke={COLORS[index % COLORS.length]} fill={COLORS[index % COLORS.length]}
+                      fillOpacity={activeTriangle === index ? 0.22 : 0.12} strokeWidth={activeTriangle === index ? 2.7 : 1.7} />
+                    <circle cx={point.x} cy={point.y} r="2" fill={COLORS[index % COLORS.length]} />
+                    {circle.radius * RADIUS > 17 && <text x={point.x} y={point.y - 7} className="radius-label"
+                      fill={COLORS[index % COLORS.length]}>r<tspan baselineShift="sub" fontSize="9">{index + 1}</tspan></text>}
+                    <title>{`r${index + 1} = ${circle.radius.toFixed(6)} R`}</title>
+                  </g>
+                })}
+                {drag && <line x1={screen(vertices[drag.start]).x} y1={screen(vertices[drag.start]).y}
+                  x2={drag.target === null ? drag.point.x : screen(vertices[drag.target]).x}
+                  y2={drag.target === null ? drag.point.y : screen(vertices[drag.target]).y} className="drag-preview" />}
+                {vertices.map((vertex, index) => {
+                  const point = screen(vertex)
+                  const label = { x: CENTER + vertex.x * (RADIUS + 26), y: CENTER + vertex.y * (RADIUS + 26) }
+                  const selected = keyboardStart === index || drag?.start === index || drag?.target === index
+                  return <g key={index} role="button" tabIndex={0} aria-label={`Vertex ${vertexName(index)}`}
+                    aria-pressed={selected} className={`vertex${selected ? ' selected' : ''}`}
+                    onKeyDown={(event) => vertexKey(event, index)}
+                    onPointerDown={(event) => {
+                      if (event.button !== 0 || !event.isPrimary) return
+                      event.preventDefault()
+                      svgRef.current!.setPointerCapture(event.pointerId)
+                      setKeyboardStart(null)
+                      setDrag({ start: index, point, target: index })
+                    }}>
+                    <circle cx={point.x} cy={point.y} r={count > 25 ? 10 : 14} className="vertex-hit" />
+                    <circle cx={point.x} cy={point.y} r={selected ? 6.5 : 4.5} className="vertex-dot" />
+                    <text x={label.x} y={label.y} className={`vertex-label${count > 26 ? ' small' : ''}`}>{vertexName(index)}</text>
+                  </g>
+                })}
+              </svg>
+            </div>
+            <div className="drawing-footer">
+              <div className="legend"><span><i className="legend-line" /> Polygon</span><span><i className="legend-line dashed" /> Diagonal</span><span><i className="legend-circle" /> Incircle</span></div>
+              <span className="drag-hint">↗ Drag vertex to vertex</span>
+            </div>
+          </section>
+
+          <aside className="controls" aria-label="Exploration controls">
+            <div className="panel-heading"><span className="eyebrow">YOUR CONSTRUCTION</span><span className="tiny-cross">+</span></div>
+            <Slider label="Vertices" value={count} min={3} max={40}
+              onChange={(value) => changeConfiguration(setCount, value)} description={`${count} vertices make ${count - 2} triangles.`} />
+            <Slider label="Vertex placement" value={placementSeed} min={1} max={25}
+              onChange={(value) => changeConfiguration(setPlacementSeed, value)} description="A new seed, a new cyclic polygon." />
+            <Slider label="Triangulation" value={triangulationSeed} min={1} max={25}
+              onChange={(value) => changeConfiguration(setTriangulationSeed, value)} description="Same vertices. A different way to divide them." />
+
+            <button className={`circle-toggle${showCircles ? ' on' : ''}`} aria-pressed={showCircles}
+              onClick={() => setShowCircles(!showCircles)}>
+              <span><span className="circle-icon" />{showCircles ? 'Hide incircles' : 'Show incircles'}</span>
+              <span className="switch" aria-hidden="true"><span /></span>
+            </button>
+
+            <section className="forced-panel" aria-label="Forced diagonals">
+              <div className="forced-heading"><h2>Make it your own</h2><span className="count-badge">{forced.length} forced</span></div>
+              <p>Drag between two vertices to lock in a diagonal. A new crossing diagonal replaces the old one.</p>
+              <p className="keyboard-hint">Keyboard: Tab to a vertex, Enter to select each end. Esc to cancel.</p>
+              {forced.length > 0 && <div className="edge-chips">{forced.map((edge) => (
+                <button key={edgeKey(edge)} aria-label={`Remove diagonal ${vertexName(edge[0])}-${vertexName(edge[1])}`}
+                  onClick={() => {
+                    setForced(forced.filter((item) => edgeKey(item) !== edgeKey(edge)))
+                    setMessage('Forced diagonal removed.')
+                  }}>{vertexName(edge[0])}–{vertexName(edge[1])}<span aria-hidden="true">×</span></button>
+              ))}</div>}
+              <button className="text-button" disabled={forced.length === 0}
+                onClick={() => { setForced([]); setMessage('All forced diagonals cleared.') }}>↺ Clear forced diagonals</button>
+            </section>
+          </aside>
+        </div>
+
+        <section className="sum-card" aria-label="Sum of incircle radii">
+          <div className="sum-main">
+            <div className="sum-title"><span className="eyebrow">THE SUM OF THE INRADII</span><span className={`invariant-badge${invariant ? '' : ' error'}`}>{invariant ? '✓ Invariant preserved' : 'Calculation mismatch'}</span></div>
+            <div className="sum-value"><span className="sigma">Σ r<sub>i</sub></span><span className="equals">=</span><output data-testid="radius-sum">{sum.toFixed(6)}</output><span className="sum-unit">R</span></div>
+            <p>Change the triangulation, not the total.</p>
+          </div>
+          <div className="summands">
+            <div className="summands-heading"><span>{circles.length} RADII, ONE CONSTANT</span><span>in units of R</span></div>
+            <div className="terms" aria-label="Individual inradii">
+              {visibleTerms.map((index) => index === -1
+                ? <span className="ellipsis" key="ellipsis" title={`${circles.length - 18} more terms`}>+ ···</span>
+                : <span className="term-wrapper" key={index}>
+                    {index > 0 && <span className="plus">+</span>}
+                    <button className={`term${activeTriangle === index ? ' highlighted' : ''}`}
+                      style={{ '--term-color': COLORS[index % COLORS.length] } as React.CSSProperties}
+                      aria-label={`Radius ${index + 1}: ${circles[index].radius.toFixed(6)}`}
+                      onPointerEnter={() => setActiveTriangle(index)} onPointerLeave={() => setActiveTriangle(null)}
+                      onFocus={() => setActiveTriangle(index)} onBlur={() => setActiveTriangle(null)}>
+                      <span>r<sub>{index + 1}</sub></span>{circles[index].radius.toFixed(4)}
+                    </button>
+                  </span>)}
+            </div>
+            <p className="rounding-note">Terms rounded to 4 decimals; total calculated at full precision.</p>
+          </div>
+        </section>
+
+        <div className="status-message" role="status" aria-label="Construction updates">{message}</div>
+        <footer className="notebook-footer">
+          <span className="footer-symbol" aria-hidden="true">∴</span>
+          <p>For a fixed polygon inscribed in a circle, the sum of the triangles’ inradii is independent of its triangulation.<br /><span>New vertex placement changes the polygon, so it can change the sum. Incircle areas are not the invariant.</span></p>
+          <span className="footer-tag">THE JAPANESE THEOREM</span>
+        </footer>
+      </main>
+    </div>
+  )
+}
+
+export default App
