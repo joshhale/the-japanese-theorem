@@ -73,6 +73,72 @@ test('toggles every construction layer independently and keeps the live readouts
   expect(errors).toEqual([])
 })
 
+test('marks perpendicular intersections and equal half-angles while vertices move and the view changes', async ({ page }) => {
+  await openTriangle(page)
+  await page.getByRole('button', { name: 'Perpendicular bisectors', exact: true }).click()
+  await page.getByRole('button', { name: 'Angle bisectors', exact: true }).click()
+
+  async function checkMarkers() {
+    await expect(page.getByTestId('bisector-right-angle')).toHaveCount(3)
+    await expect(page.getByTestId('equal-angle-indicator')).toHaveCount(6)
+    const squares = await page.getByTestId('bisector-right-angle').evaluateAll((nodes) => nodes.map((node) => {
+      if (!(node instanceof SVGPathElement)) throw new Error('Expected an SVG path')
+      const midpoint = node.parentElement!.querySelector('circle')!
+      const origin = { x: Number(midpoint.getAttribute('cx')), y: Number(midpoint.getAttribute('cy')) }
+      const length = node.getTotalLength()
+      const a = node.getPointAtLength(0)
+      const b = node.getPointAtLength(length / 2)
+      const c = node.getPointAtLength(length)
+      const u = { x: a.x - origin.x, y: a.y - origin.y }
+      const v = { x: c.x - origin.x, y: c.y - origin.y }
+      return {
+        cosine: (u.x * v.x + u.y * v.y) / (Math.hypot(u.x, u.y) * Math.hypot(v.x, v.y)),
+        ratio: Math.hypot(u.x, u.y) / Math.hypot(v.x, v.y),
+        cornerError: Math.hypot(b.x - origin.x - u.x - v.x, b.y - origin.y - u.y - v.y),
+      }
+    }))
+    for (const square of squares) {
+      expect(square.cosine).toBeCloseTo(0, 4)
+      expect(square.ratio).toBeCloseTo(1, 4)
+      expect(square.cornerError).toBeLessThan(0.001)
+    }
+    const angles = await page.getByTestId('equal-angle-indicator').evaluateAll((nodes) => nodes.map((node) => {
+      const line = node.parentElement!.querySelector('line')!
+      const origin = { x: Number(line.getAttribute('x1')), y: Number(line.getAttribute('y1')) }
+      return [...node.querySelectorAll<SVGPathElement>('.angle-arc')].map((path) => {
+        const from = path.getPointAtLength(0)
+        const to = path.getPointAtLength(path.getTotalLength())
+        const ax = from.x - origin.x
+        const ay = from.y - origin.y
+        const bx = to.x - origin.x
+        const by = to.y - origin.y
+        return { angle: Math.atan2(Math.abs(ax * by - ay * bx), ax * bx + ay * by), radius: Math.hypot(ax, ay) }
+      })
+    }))
+    for (let index = 0; index < angles.length; index += 2) {
+      angles[index].forEach((arc, marker) => {
+        expect(arc.angle).toBeGreaterThan(0)
+        expect(arc.angle).toBeLessThan(Math.PI / 2)
+        expect(arc.angle).toBeCloseTo(angles[index + 1][marker].angle, 4)
+        expect(arc.radius).toBeCloseTo(angles[index + 1][marker].radius, 3)
+      })
+    }
+  }
+
+  await checkMarkers()
+  const before = await page.getByTestId('bisector-right-angle').first().getAttribute('d')
+  await moveVertex(page, 'A', 320, 590)
+  await checkMarkers()
+  await expect(page.getByTestId('bisector-right-angle').first()).not.toHaveAttribute('d', before!)
+  await page.getByRole('button', { name: 'Fit circles', exact: true }).click()
+  await checkMarkers()
+  await page.getByRole('button', { name: 'Perpendicular bisectors', exact: true }).click()
+  await expect(page.getByTestId('bisector-right-angle')).toHaveCount(0)
+  await expect(page.getByTestId('equal-angle-indicator')).toHaveCount(6)
+  await page.getByRole('button', { name: 'Angle bisectors', exact: true }).click()
+  await expect(page.getByTestId('equal-angle-indicator')).toHaveCount(0)
+})
+
 test('drags freely, computes actual circle radii, supports keyboard movement, and restores cancelled drags', async ({ page }) => {
   await openTriangle(page)
   const original = await trianglePoints(page)

@@ -28,6 +28,19 @@ const LAYERS: { key: keyof typeof INITIAL_LAYERS; label: string; color: string }
 const distance = (a: Point, b: Point) => Math.hypot(a.x - b.x, a.y - b.y)
 const formatLength = (length: number) => (Math.abs(length) < 1e-8 ? 0 : length / LENGTH_UNIT).toFixed(6)
 
+function angleMarker(center: Point, from: Point, to: Point, radius: number, tickSize: number) {
+  const start = Math.atan2(from.y - center.y, from.x - center.x)
+  const end = Math.atan2(to.y - center.y, to.x - center.x)
+  const cross = (from.x - center.x) * (to.y - center.y) - (from.y - center.y) * (to.x - center.x)
+  const dot = (from.x - center.x) * (to.x - center.x) + (from.y - center.y) * (to.y - center.y)
+  const middle = start + Math.atan2(cross, dot) / 2
+  const tick = Math.min(tickSize, radius * 0.1)
+  return {
+    arc: `M${center.x + radius * Math.cos(start)},${center.y + radius * Math.sin(start)} A${radius},${radius} 0 0 ${cross > 0 ? 1 : 0} ${center.x + radius * Math.cos(end)},${center.y + radius * Math.sin(end)}`,
+    tick: `M${center.x + (radius - tick) * Math.cos(middle)},${center.y + (radius - tick) * Math.sin(middle)} L${center.x + (radius + tick) * Math.cos(middle)},${center.y + (radius + tick) * Math.sin(middle)}`,
+  }
+}
+
 function TriangleExplorer() {
   const [seed, setSeed] = useState(7)
   const [points, setPoints] = useState<TrianglePoints>(() => createFreeTriangle(7))
@@ -134,18 +147,41 @@ function TriangleExplorer() {
             {geometry.valid && <>
               {layers.circumcircle && <circle data-testid="triangle-circumcircle" className="triangle-circumcircle"
                 cx={geometry.outer.x} cy={geometry.outer.y} r={geometry.outer.radius} />}
-              {layers.perpendiculars && geometry.sides.map((side, index) => (
-                <g key={index} data-testid="perpendicular-bisector">
+              {layers.perpendiculars && geometry.sides.map((side, index) => {
+                const inward = (side.opposite.x - side.midpoint.x) * side.normal.x + (side.opposite.y - side.midpoint.y) * side.normal.y
+                const size = Math.min(8 * scale, side.length / 8, Math.abs(inward) / 4)
+                const dx = (side.end.x - side.start.x) / side.length * size
+                const dy = (side.end.y - side.start.y) / side.length * size
+                const nx = side.normal.x * Math.sign(inward) * size
+                const ny = side.normal.y * Math.sign(inward) * size
+                return <g key={index} data-testid="perpendicular-bisector">
                   <line className="perpendicular-bisector"
                     x1={side.midpoint.x - side.normal.x * view.size * 3} y1={side.midpoint.y - side.normal.y * view.size * 3}
                     x2={side.midpoint.x + side.normal.x * view.size * 3} y2={side.midpoint.y + side.normal.y * view.size * 3} />
                   <circle cx={side.midpoint.x} cy={side.midpoint.y} r={2.5 * scale} fill="#487d82" />
+                  <path data-testid="bisector-right-angle" className="bisector-right-angle"
+                    d={`M${side.midpoint.x + dx},${side.midpoint.y + dy} l${nx},${ny} l${-dx},${-dy}`} />
                 </g>
-              ))}
-              {layers.angles && geometry.sides.map((side, index) => (
-                <line key={index} data-testid="angle-bisector" className="angle-bisector"
-                  x1={side.opposite.x} y1={side.opposite.y} x2={side.angleFoot.x} y2={side.angleFoot.y} />
-              ))}
+              })}
+              {layers.angles && geometry.sides.map((side, index) => {
+                const altitude = Math.abs((side.opposite.x - side.midpoint.x) * side.normal.x + (side.opposite.y - side.midpoint.y) * side.normal.y)
+                const radius = Math.min(24 * scale, altitude / 4)
+                return <g key={index}>
+                  <line data-testid="angle-bisector" className="angle-bisector"
+                    x1={side.opposite.x} y1={side.opposite.y} x2={side.angleFoot.x} y2={side.angleFoot.y} />
+                  {[[side.start, side.angleFoot], [side.angleFoot, side.end]].map(([from, to], half) => (
+                    <g key={half} data-testid="equal-angle-indicator" className="equal-angle-indicator" data-vertex={index}>
+                      {Array.from({ length: index + 1 }, (_, arc) => {
+                        const mark = angleMarker(side.opposite, from, to, radius * (1 + arc * 0.18), 2 * scale)
+                        return <g key={arc}>
+                          <path className="angle-arc" d={mark.arc} />
+                          <path d={mark.tick} />
+                        </g>
+                      })}
+                    </g>
+                  ))}
+                </g>
+              })}
               {layers.incircle && <circle data-testid="triangle-incircle" className="triangle-incircle"
                 cx={geometry.inner.x} cy={geometry.inner.y} r={geometry.inner.radius} />}
             </>}
