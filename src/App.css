@@ -24,6 +24,7 @@
 .fan-shading .triangle-fill.active { fill-opacity: 0.14; }
 .fan-shading .triangle-fill.fan-triangle { fill: #54766e; fill-opacity: 0.24; }
 .fan-shading .triangle-fill.fan-triangle.active { fill-opacity: 0.36; }
+.affected-preview { fill: #d47352; fill-opacity: 0.26; pointer-events: none; }
 .diagonal { stroke: #81928d; stroke-width: 1.1; stroke-dasharray: 4 5; pointer-events: none; }
 .diagonal.forced { stroke: #b8603f; stroke-width: 2.6; stroke-dasharray: none; }
 .radius-label { font: italic 15px Georgia, serif; text-anchor: middle; pointer-events: none; }

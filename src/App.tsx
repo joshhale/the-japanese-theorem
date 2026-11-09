@@ -1,7 +1,7 @@
 import { useMemo, useRef, useState } from 'react'
 import type { KeyboardEvent, PointerEvent } from 'react'
 import {
-  createVertices, edgeKey, forceEdge, incircle, insertDiagonal, isBoundary,
+  createVertices, edgeKey, edgesCross, forceEdge, incircle, insertDiagonal, isBoundary,
   referenceSum, triangleEdges, triangulate,
 } from './geometry'
 import type { Edge, Point } from './geometry'
@@ -52,6 +52,12 @@ function App() {
   const vertices = useMemo(() => createVertices(count, placementSeed), [count, placementSeed])
   const circles = triangles.map((triangle) => incircle(vertices, triangle))
   const edges = triangleEdges(triangles).filter((edge) => !isBoundary(edge, count))
+  const previewEdge: Edge | null = drag && drag.target !== null && drag.target !== drag.start
+    ? [drag.start, drag.target]
+    : null
+  const affectedTriangles = previewEdge
+    ? triangles.filter((triangle) => triangleEdges([triangle]).some((edge) => edgesCross(edge, previewEdge)))
+    : []
   const sum = circles.reduce((total, circle) => total + circle.radius, 0)
   const reference = referenceSum(vertices)
   const invariant = Math.abs(sum - reference) < 1e-10
@@ -176,6 +182,12 @@ function App() {
                     fill={COLORS[index % COLORS.length]} fillOpacity={activeTriangle === index ? 0.23 : 0.055}
                     className={`triangle-fill${fanIndex !== null && triangle.includes(fanIndex) ? ' fan-triangle' : ''}${activeTriangle === index ? ' active' : ''}`} />
                 ))}
+                <g className="affected-preview" aria-hidden="true">
+                  {affectedTriangles.map((triangle) => (
+                    <polygon key={triangle.join('-')} data-testid="affected-triangle"
+                      points={triangle.map((vertex) => { const p = screen(vertices[vertex]); return `${p.x},${p.y}` }).join(' ')} />
+                  ))}
+                </g>
                 <polygon points={vertices.map((vertex) => { const p = screen(vertex); return `${p.x},${p.y}` }).join(' ')}
                   className="polygon-boundary" />
                 {edges.map((edge) => {
@@ -214,6 +226,7 @@ function App() {
                     onPointerDown={(event) => {
                       if (event.button !== 0 || !event.isPrimary) return
                       event.preventDefault()
+                      event.currentTarget.focus()
                       svgRef.current!.setPointerCapture(event.pointerId)
                       setKeyboardStart(null)
                       setDrag({ start: index, point, target: index })

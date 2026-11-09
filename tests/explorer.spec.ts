@@ -8,13 +8,18 @@ async function setSlider(page: Page, name: string, value: number) {
   await slider.fill(String(value))
 }
 
+async function vertexPosition(page: Page, name: string) {
+  const bounds = await page.getByRole('button', { name: `Vertex ${name}`, exact: true }).locator('.vertex-hit').boundingBox()
+  if (!bounds) throw new Error(`Vertex ${name} not visible`)
+  return { x: bounds.x + bounds.width / 2, y: bounds.y + bounds.height / 2 }
+}
+
 async function dragEdge(page: Page, start: string, end: string) {
-  const from = await page.getByRole('button', { name: `Vertex ${start}`, exact: true }).locator('.vertex-hit').boundingBox()
-  const to = await page.getByRole('button', { name: `Vertex ${end}`, exact: true }).locator('.vertex-hit').boundingBox()
-  if (!from || !to) throw new Error('Vertex not visible')
-  await page.mouse.move(from.x + from.width / 2, from.y + from.height / 2)
+  const from = await vertexPosition(page, start)
+  const to = await vertexPosition(page, end)
+  await page.mouse.move(from.x, from.y)
   await page.mouse.down()
-  await page.mouse.move(to.x + to.width / 2, to.y + to.height / 2, { steps: 12 })
+  await page.mouse.move(to.x, to.y, { steps: 12 })
   await page.mouse.up()
 }
 
@@ -37,6 +42,75 @@ async function expectFanShading(page: Page, name: string) {
   await expect.poll(() => page.locator('.fan-triangle').evaluateAll((nodes) =>
     nodes.every((node) => Number(getComputedStyle(node).fillOpacity) >= 0.24))).toBe(true)
 }
+
+test('previews the affected quadrilateral or larger region without changing geometry until release', async ({ page }) => {
+  await page.goto('/')
+  await setSlider(page, 'Fan vertex', 1)
+  const from = await vertexPosition(page, 'A')
+  const quadEnd = await vertexPosition(page, 'G')
+  const largerEnd = await vertexPosition(page, 'F')
+  const before = await diagonalKeys(page)
+  const originalTriangles = await page.getByTestId('triangle').evaluateAll((nodes) => nodes.map((node) => node.getAttribute('points')))
+  const originalRadii = await page.getByTestId('incircle').evaluateAll((nodes) => nodes.map((node) => node.getAttribute('r')))
+  await page.mouse.move(from.x, from.y)
+  await page.mouse.down()
+  await expect(page.getByTestId('affected-triangle')).toHaveCount(0)
+  await page.mouse.move(quadEnd.x, quadEnd.y, { steps: 12 })
+  await expect(page.getByTestId('affected-triangle')).toHaveCount(2)
+  expect(await page.getByTestId('affected-triangle').evaluateAll((nodes) => nodes.map((node) => node.getAttribute('points')).sort()))
+    .toEqual([originalTriangles[1], originalTriangles[3]].sort())
+  await page.mouse.move(largerEnd.x, largerEnd.y, { steps: 12 })
+  await expect(page.getByTestId('affected-triangle')).toHaveCount(5)
+  expect(await diagonalKeys(page)).toEqual(before)
+  expect(await page.getByTestId('incircle').evaluateAll((nodes) => nodes.map((node) => node.getAttribute('r')))).toEqual(originalRadii)
+  await expect(page.getByTestId('forced-edge')).toHaveCount(0)
+  const previewPoints = await page.getByTestId('affected-triangle').evaluateAll((nodes) => nodes.map((node) => node.getAttribute('points')).sort())
+  await page.mouse.up()
+  await expect(page.getByTestId('affected-triangle')).toHaveCount(0)
+  await expect(page.locator('[data-edge="0-5"][data-testid="forced-edge"]')).toHaveCount(1)
+  const finalTriangles = await page.getByTestId('triangle').evaluateAll((nodes) => nodes.map((node) => node.getAttribute('points')))
+  expect(originalTriangles.filter((triangle) => !finalTriangles.includes(triangle)).sort()).toEqual(previewPoints)
+  await expectFanShading(page, 'A')
+})
+
+test('clears previews for invalid targets, existing edges, cancellation, and release away from a vertex', async ({ page }) => {
+  await page.goto('/')
+  await page.getByRole('button', { name: 'Hide incircles' }).click()
+  const from = await vertexPosition(page, 'A')
+  const boundaryEnd = await vertexPosition(page, 'B')
+  const end = await vertexPosition(page, 'G')
+  const svg = page.locator('.geometry')
+  const bounds = await svg.boundingBox()
+  if (!bounds) throw new Error('Diagram not visible')
+  const center = { x: bounds.x + bounds.width / 2, y: bounds.y + bounds.height / 2 }
+  const before = await diagonalKeys(page)
+  await page.mouse.move(from.x, from.y)
+  await page.mouse.down()
+  await page.mouse.move(boundaryEnd.x, boundaryEnd.y, { steps: 12 })
+  await expect(page.getByTestId('affected-triangle')).toHaveCount(0)
+  await page.mouse.move(end.x, end.y, { steps: 12 })
+  await expect(page.getByTestId('affected-triangle')).toHaveCount(2)
+  await page.mouse.move(center.x, center.y, { steps: 12 })
+  await expect(page.getByTestId('affected-triangle')).toHaveCount(0)
+  await page.mouse.up()
+  expect(await diagonalKeys(page)).toEqual(before)
+  await page.mouse.move(from.x, from.y)
+  await page.mouse.down()
+  await page.mouse.move(end.x, end.y, { steps: 12 })
+  await expect(page.getByTestId('affected-triangle')).toHaveCount(2)
+  await page.keyboard.press('Escape')
+  await expect(page.getByTestId('affected-triangle')).toHaveCount(0)
+  await page.mouse.up()
+  expect(await diagonalKeys(page)).toEqual(before)
+  const existingStart = await vertexPosition(page, 'B')
+  const existingEnd = await vertexPosition(page, 'H')
+  await page.mouse.move(existingStart.x, existingStart.y)
+  await page.mouse.down()
+  await page.mouse.move(existingEnd.x, existingEnd.y, { steps: 12 })
+  await expect(page.getByTestId('affected-triangle')).toHaveCount(0)
+  await page.mouse.up()
+  expect(await diagonalKeys(page)).toEqual(before)
+})
 
 test('fan selection shades only incident triangles and leaves the construction unchanged', async ({ page }) => {
   await page.goto('/')

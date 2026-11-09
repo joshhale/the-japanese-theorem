@@ -25,6 +25,9 @@ npm run dev
 - Drag between nonadjacent vertices to force a diagonal. Only existing edges
   crossing it are removed, whether forced or random. All compatible edges stay,
   and untouched triangles keep their colors and radius labels.
+- While dragging over a possible endpoint, an orange translucent overlay shows
+  exactly which triangles would change. Moving away or cancelling clears the
+  preview; the construction changes only on release.
 - Unlock individual diagonals using their chips or clear all locks. Unlocking
   does not redraw the triangulation; changing a seed generates a fresh one.
 - Keyboard alternative: Tab to a vertex, press Enter or Space, then repeat at
