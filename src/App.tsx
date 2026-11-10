@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import type { KeyboardEvent, PointerEvent } from 'react'
 import {
   createVertices, edgeKey, edgesCross, forceEdge, incircle, insertDiagonal, isBoundary,
@@ -8,6 +8,7 @@ import type { Edge, Point } from './geometry'
 import TriangleExplorer from './TriangleExplorer'
 import QuadrilateralExplorer from './QuadrilateralExplorer'
 import CarnotProofExplorer from './CarnotProofExplorer'
+import SangakuPage from './SangakuPage'
 import './App.css'
 
 const COLORS = ['#d47352', '#487d82', '#9c8644', '#8476a5', '#64815c', '#af6384']
@@ -38,10 +39,14 @@ function Slider({ label, value, min, max, onChange, description, formatValue }: 
   )
 }
 
-function PolygonExplorer() {
-  const [configuration, setConfiguration] = useState({ count: 8, placementSeed: 7, triangulationSeed: 1 })
+type PolygonConfiguration = { count: number; placementSeed: number; triangulationSeed: number }
+
+function PolygonExplorer({ configuration, vertices, onConfigurationChange }: {
+  configuration: PolygonConfiguration; vertices: readonly Point[]
+  onConfigurationChange: (configuration: PolygonConfiguration) => void
+}) {
   const { count, placementSeed, triangulationSeed } = configuration
-  const [triangles, setTriangles] = useState(() => triangulate(8, 1))
+  const [triangles, setTriangles] = useState(() => triangulate(configuration.count, configuration.triangulationSeed))
   const [forced, setForced] = useState<Edge[]>([])
   const [showCircles, setShowCircles] = useState(true)
   const [fanVertex, setFanVertex] = useState(0)
@@ -52,7 +57,6 @@ function PolygonExplorer() {
   const [message, setMessage] = useState('Try another triangulation. Watch the sum stay put.')
   const svgRef = useRef<SVGSVGElement>(null)
 
-  const vertices = useMemo(() => createVertices(count, placementSeed), [count, placementSeed])
   const circles = triangles.map((triangle) => incircle(vertices, triangle))
   const edges = triangleEdges(triangles).filter((edge) => !isBoundary(edge, count))
   const previewEdge: Edge | null = drag && drag.target !== null && drag.target !== drag.start
@@ -70,7 +74,7 @@ function PolygonExplorer() {
 
   function changeConfiguration(change: Partial<typeof configuration>) {
     const next = { ...configuration, ...change }
-    setConfiguration(next)
+    onConfigurationChange(next)
     if (fanVertex > next.count) setFanVertex(0)
     setTriangles(triangulate(next.count, next.triangulationSeed))
     setForced([])
@@ -314,11 +318,22 @@ function PolygonExplorer() {
 }
 
 function App() {
-  const [activeTab, setActiveTab] = useState(0)
+  const [activeTab, setActiveTab] = useState(1)
+  const [configuration, setConfiguration] = useState<PolygonConfiguration>({ count: 8, placementSeed: 7, triangulationSeed: 1 })
+  const vertices = useMemo(() => createVertices(configuration.count, configuration.placementSeed),
+    [configuration.count, configuration.placementSeed])
   const tabRefs = useRef<(HTMLButtonElement | null)[]>([])
-  const tabs = ['Japanese Theorem', "Carnot's Theorem", 'Quadrilateral proof', 'Carnot proof']
-  return <div className="app-shell"><main>
-    <nav className="tabs" role="tablist" aria-label="Explorations">
+  const sangakuPanel = useRef<HTMLElement>(null)
+  const previousTab = useRef(activeTab)
+  const tabs = ['算額', 'Japanese Theorem', "Carnot's Theorem", 'Quadrilateral proof', 'Carnot proof']
+  useEffect(() => {
+    if (activeTab === 0) sangakuPanel.current?.focus({ preventScroll: true })
+    else if (previousTab.current === 0) tabRefs.current[activeTab]?.focus()
+    previousTab.current = activeTab
+  }, [activeTab])
+
+  return <div className={`app-shell${activeTab === 0 ? ' sangaku-shell' : ''}`}><main>
+    <nav className="tabs" role="tablist" aria-label="Explorations" hidden={activeTab === 0}>
       {tabs.map((label, index) => (
         <button key={label} ref={(node) => { tabRefs.current[index] = node }}
           id={`tab-${index}`} role="tab" aria-selected={activeTab === index} aria-controls={`panel-${index}`}
@@ -331,13 +346,19 @@ function App() {
               : (index + (event.key === 'ArrowRight' ? 1 : -1) + tabs.length) % tabs.length
             setActiveTab(next)
             tabRefs.current[next]?.focus()
-          }}><span>{String(index + 1).padStart(2, '0')}</span>{label}</button>
+          }}><span>{String(index).padStart(2, '0')}</span>{label}</button>
       ))}
     </nav>
-    <section id="panel-0" role="tabpanel" aria-labelledby="tab-0" hidden={activeTab !== 0}><PolygonExplorer /></section>
-    <section id="panel-1" role="tabpanel" aria-labelledby="tab-1" hidden={activeTab !== 1}><TriangleExplorer /></section>
-    <section id="panel-2" role="tabpanel" aria-labelledby="tab-2" hidden={activeTab !== 2}><QuadrilateralExplorer /></section>
-    <section id="panel-3" role="tabpanel" aria-labelledby="tab-3" hidden={activeTab !== 3}><CarnotProofExplorer /></section>
+    <section ref={sangakuPanel} className="sangaku-panel" id="panel-0" role="tabpanel" aria-labelledby="tab-0"
+      tabIndex={-1} hidden={activeTab !== 0}>
+      <SangakuPage key={`${configuration.count}-${configuration.placementSeed}`} vertices={vertices} onExplore={() => setActiveTab(1)} />
+    </section>
+    <section id="panel-1" role="tabpanel" aria-labelledby="tab-1" hidden={activeTab !== 1}>
+      <PolygonExplorer configuration={configuration} vertices={vertices} onConfigurationChange={setConfiguration} />
+    </section>
+    <section id="panel-2" role="tabpanel" aria-labelledby="tab-2" hidden={activeTab !== 2}><TriangleExplorer /></section>
+    <section id="panel-3" role="tabpanel" aria-labelledby="tab-3" hidden={activeTab !== 3}><QuadrilateralExplorer /></section>
+    <section id="panel-4" role="tabpanel" aria-labelledby="tab-4" hidden={activeTab !== 4}><CarnotProofExplorer /></section>
   </main></div>
 }
 

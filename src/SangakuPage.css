@@ -1,0 +1,11 @@
+.app-shell.sangaku-shell { max-width: none; min-height: 100svh; padding: 0; background: #fff; color: #000; }
+.tabs[hidden] { display: none; }
+.sangaku-panel:focus { outline: none; }
+.sangaku-page { min-height: 100svh; display: grid; grid-template-rows: 1fr auto; justify-items: center; gap: 28px; padding: 32px clamp(16px, 5vw, 80px) 28px; }
+.sangaku-diagrams { align-self: center; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: clamp(12px, 4vw, 72px); width: 100%; max-width: min(1400px, calc(180svh - 240px)); }
+.sangaku-diagram { display: block; width: 100%; padding: 0; border: 0; border-radius: 50%; background: #fff; color: #000; line-height: 0; cursor: pointer; }
+.sangaku-diagram:disabled { cursor: default; }
+.sangaku-diagram svg { display: block; width: 100%; height: auto; }
+.sangaku-explore { min-height: 44px; padding: 8px 16px; border: 1px solid #000; border-radius: 3px; background: #fff; color: #000; font: 15px 'Yu Mincho', 'Hiragino Mincho ProN', serif; cursor: pointer; }
+.sangaku-page button:not(:disabled):hover { filter: none; }
+.sangaku-page button:focus-visible { outline: 2px solid #000; outline-offset: 6px; }

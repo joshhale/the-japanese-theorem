@@ -13,6 +13,21 @@ npm ci
 npm run dev
 ```
 
+## 00 算額
+
+A white, monochrome presentation view with two copies of the polygon currently
+configured in tab 01. Both use the same vertex data, with independent
+triangulations and actual incircles. Click either drawing, or use Enter or
+Space, to change just its triangulation. No labels or controls are drawn over
+the geometry. The button `丸山良寛の定理` returns to tab 01.
+
+The notebook navigation is hidden in this view. Switching tabs preserves the
+drawings; changing the polygon's vertex count or placement seed resets them.
+Changing only tab 01's triangulation does not affect the presentation.
+Drawings use distinct triangulations whenever possible. A triangle has only
+one, so its drawing buttons are disabled; a quadrilateral has only two, so
+independently changing one drawing can make the two match.
+
 ## Japanese Theorem tab
 
 - Choose 3 to 40 vertices and one of 25 deterministic seeds for vertex placement
