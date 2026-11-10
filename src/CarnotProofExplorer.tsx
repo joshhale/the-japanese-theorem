@@ -223,7 +223,7 @@ function TrianglePicture({ points, proof, step, focus, center, layers, activeTil
     </g>}
     {layers.construction && step === STEP.area && center === 'I' && geometry.sides.map((item, index) => {
       const touch = screen(item.touch)
-      return <g key={index} data-testid="carnot-inradius-height"><line x1={inner.x} y1={inner.y} x2={touch.x} y2={touch.y} stroke="#bd6b4d" strokeWidth="2" />
+      return <g key={index} data-testid="carnot-inradius-height"><line x1={inner.x} y1={inner.y} x2={touch.x} y2={touch.y} stroke="#bd6b4d" strokeWidth="2" strokeDasharray="4 5" />
         <text x={(inner.x + touch.x) / 2 + 9} y={(inner.y + touch.y) / 2 - 6} fill="#bd6b4d">r</text></g>
     })}
     {(step <= STEP.cosine || layers.circle) && <g data-testid="carnot-proof-circumcenter">

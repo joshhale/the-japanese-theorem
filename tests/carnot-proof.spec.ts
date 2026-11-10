@@ -263,6 +263,11 @@ test('switches the area triangles and heights with the incircle', async ({ page 
       if (await incircle.getAttribute('aria-pressed') !== String(center === 'I')) await incircle.click()
       await expect(page.getByTestId('carnot-proof-incircle')).toHaveCount(center === 'I' ? 1 : 0)
       await expect(page.getByTestId('carnot-inradius-height')).toHaveCount(center === 'I' ? 3 : 0)
+      if (center === 'I') {
+        for (const height of await page.getByTestId('carnot-inradius-height').locator('line').all()) {
+          await expect(height).toHaveCSS('stroke-dasharray', '4px, 5px')
+        }
+      }
       const triangles = await page.getByTestId('carnot-proof-area').evaluateAll((nodes) =>
         nodes.map((node) => ({
           points: node.getAttribute('points')?.split(' ').map((point) => point.split(',').map(Number)),
