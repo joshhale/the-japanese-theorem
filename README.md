@@ -106,16 +106,23 @@ It follows the elementary projection-and-area argument in
 [Alexander Bogomolny's Carnot's Theorem, Proof 1](https://www.cut-the-knot.org/proofs/carnot.shtml),
 with an original nine-tile visualization of the final addition.
 
-1. Project a radius to see `d_a = R cos A`, including an obtuse angle's
-   negative projection. Matching angle marks and a directed axis explain the sign.
-2. Project a side: `a = c cos B + b cos C`, hence `aR = c d_b + b d_c`.
+1. Halve the central angle: show the angle `2A`, equal radii OB and OC,
+   midpoint M, and perpendicular OM. The two half-angles are A when A is acute,
+   or `180 degrees - A` when A is obtuse. The central arc correctly becomes
+   reflex in the obtuse case.
+2. Isolate right triangle OBM and read
+   `cos A = adjacent / hypotenuse = OM / OB = d_a / R`, with explicit signed
+   and right-angle cases. Unrelated incircles and distances are hidden in
+   these first two constructions.
+3. Project a side: `a = c cos B + b cos C`, hence `aR = c d_b + b d_c`.
+   Each substitution links back to its own cosine construction in Step 2.
    Change the focus side to obtain all three identities.
-3. Measure the triangle's area using O and I as alternate centers:
+4. Measure the triangle's area using O and I as alternate centers:
    `a d_a + b d_b + c d_c = 2 area = Pr`.
-4. Split three strips of width `P = a + b + c` into nine actual-area tiles.
+5. Split three strips of width `P = a + b + c` into nine actual-area tiles.
    The three diagonal tiles sum to `Pr`. The other six pair up through the
    side-projection identities and sum to `PR`. Hatched tiles are subtracted.
-5. Divide `P(d_a + d_b + d_c) = P(r + R)` by the positive perimeter P.
+6. Divide `P(d_a + d_b + d_c) = P(r + R)` by the positive perimeter P.
 
 Choose 25 seeds or explicit acute, right, and obtuse examples. Drag vertices
 around the unit circle, or use arrow keys (Shift for larger movements). Escape

@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react'
-import type { KeyboardEvent, PointerEvent } from 'react'
+import type { KeyboardEvent, PointerEvent, ReactNode } from 'react'
 import { analyzeCarnotProof, carnotPreset, createCarnotTriangle, moveCarnotVertex } from './carnotProofGeometry'
 import { CarnotSegments } from './TriangleExplorer'
 import type { Point } from './geometry'
@@ -13,29 +13,42 @@ const RADIUS = 205
 const screen = (point: Point) => ({ x: 320 + point.x * RADIUS, y: 320 + point.y * RADIUS })
 const format = (value: number) => (Math.abs(value) < 0.0000005 ? 0 : value).toFixed(6)
 const negative = (value: number) => value < -1e-8
+const STEP = { angles: 1, cosine: 2, side: 3, area: 4, tiles: 5, conclusion: 6 }
 const STEPS = [
-  { title: 'Project a radius', text: 'A radius projects onto a perpendicular distance: d_a = R cos A. The marked angles agree by the inscribed-angle theorem. An obtuse angle gives a negative projection.' },
-  { title: 'Project a side', text: 'Drop an altitude to split a side into two signed projections. Replace each cosine using Step 1, then multiply by R. Repeat for all three sides.' },
+  { title: 'Halve the central angle', text: 'The angle at the center is twice the angle at the circumference. Equal radii make an isosceles triangle; its perpendicular to the chord bisects the central angle.' },
+  { title: 'Read the cosine', text: 'Keep just one of the right triangles from Step 1. Its hypotenuse is a radius R; its adjacent leg is OM. This is where cos A = d_a / R comes from.' },
+  { title: 'Project a side', text: 'Drop an altitude to split a side into two signed projections. Replace each cosine using Step 2, then multiply by R. Repeat for all three sides.' },
   { title: 'Measure area twice', text: 'Join O to the vertices, then try I instead. Both constructions measure the same triangle. Double the areas to remove the factor ½.' },
   { title: 'Collect the tiles', text: 'Make three strips of width P = a + b + c, with signed heights d_a, d_b, d_c. Three tiles give Pr; the other six give PR. Hatched tiles are subtracted.' },
   { title: 'Cancel the perimeter', text: 'The nine tiles have total signed area P(d_a + d_b + d_c) = Pr + PR. Divide by the positive perimeter P. What remains is Carnot’s theorem.' },
 ]
 
+function Ratio({ top, bottom }: { top: ReactNode; bottom: ReactNode }) {
+  return <span className="carnot-fraction"><span>{top}</span><span>{bottom}</span></span>
+}
+
 function D({ index }: { index: number }) {
   return <span style={{ color: COLORS[index] }}>d<sub>{'abc'[index]}</sub></span>
 }
 
-function Angle({ at, from, to, label, radius = 25, color }: {
-  at: Point; from: Point; to: Point; label: string; radius?: number; color: string
+function Angle({ at, from, to, label, radius = 25, color, through, testId }: {
+  at: Point; from: Point; to: Point; label: string; radius?: number; color: string; through?: Point; testId?: string
 }) {
   const start = Math.atan2(from.y - at.y, from.x - at.x)
   const cross = (from.x - at.x) * (to.y - at.y) - (from.y - at.y) * (to.x - at.x)
   const dot = (from.x - at.x) * (to.x - at.x) + (from.y - at.y) * (to.y - at.y)
-  const sweep = Math.atan2(cross, dot)
+  let sweep = Math.atan2(cross, dot)
+  if (through) {
+    const turn = 2 * Math.PI
+    const positive = (angle: number) => (angle % turn + turn) % turn
+    const toAngle = positive(Math.atan2(to.y - at.y, to.x - at.x) - start)
+    const throughAngle = positive(Math.atan2(through.y - at.y, through.x - at.x) - start)
+    sweep = throughAngle <= toAngle ? toAngle : toAngle - turn
+  }
   const end = start + sweep
   const middle = start + sweep / 2
-  return <g stroke={color} fill="none">
-    <path d={`M${at.x + radius * Math.cos(start)},${at.y + radius * Math.sin(start)} A${radius},${radius} 0 0 ${sweep > 0 ? 1 : 0} ${at.x + radius * Math.cos(end)},${at.y + radius * Math.sin(end)}`} />
+  return <g stroke={color} fill="none" data-testid={testId}>
+    <path d={`M${at.x + radius * Math.cos(start)},${at.y + radius * Math.sin(start)} A${radius},${radius} 0 ${Math.abs(sweep) > Math.PI ? 1 : 0} ${sweep > 0 ? 1 : 0} ${at.x + radius * Math.cos(end)},${at.y + radius * Math.sin(end)}`} />
     <text x={at.x + (radius + 14) * Math.cos(middle)} y={at.y + (radius + 14) * Math.sin(middle)}
       fill={color} textAnchor="middle" dominantBaseline="middle">{label}</text>
   </g>
@@ -58,6 +71,10 @@ function TrianglePicture({ points, proof, step, focus, center, layers, activeTil
   const axis = screen({ x: geometry.outer.x + projection.outward.x * 1.14, y: geometry.outer.y + projection.outward.y * 1.14 })
   const altitude = screen(projection.foot)
   const areaCenter = center === 'O' ? geometry.outer : geometry.inner
+  const rightAngle = Math.abs(side.signedDistance) < 1e-8
+  const obtuseAngle = negative(side.signedDistance)
+  const bisector = rightAngle ? axis : foot
+  const halfLabel = rightAngle ? '90°' : obtuseAngle ? 'θ' : 'ABC'[focus]
 
   function move(event: PointerEvent<SVGSVGElement>) {
     const matrix = svgRef.current?.getScreenCTM()
@@ -93,15 +110,18 @@ function TrianglePicture({ points, proof, step, focus, center, layers, activeTil
     </defs>
     <rect width="640" height="640" fill="url(#carnot-proof-grid)" />
     {layers.circle && <circle cx="320" cy="320" r={RADIUS} className="circumcircle" />}
-    {step === 3 && geometry.sides.map((item, index) => {
+    {step === STEP.area && geometry.sides.map((item, index) => {
       const signed = center === 'O' && negative(item.signedDistance)
       return <polygon key={index} data-testid="carnot-proof-area" data-signed={signed ? 'negative' : 'positive'}
         points={[areaCenter, item.start, item.end].map((p) => { const s = screen(p); return `${s.x},${s.y}` }).join(' ')}
         fill={signed ? 'url(#carnot-proof-negative)' : COLORS[index]} fillOpacity={signed ? 0.7 : 0.16} stroke={COLORS[index]} strokeWidth="1" />
     })}
-    {step === 1 && layers.construction && <polygon points={[o, radiusEnd, foot].map((p) => `${p.x},${p.y}`).join(' ')}
+    {step <= STEP.cosine && layers.construction && <polygon points={[o, radiusEnd, foot].map((p) => `${p.x},${p.y}`).join(' ')}
       fill={COLORS[focus]} fillOpacity="0.1" />}
-    <polygon className="polygon-boundary" points={points.map((point) => { const p = screen(point); return `${p.x},${p.y}` }).join(' ')} />
+    {step === STEP.angles && layers.construction && <polygon points={[o, foot, screen(side.end)].map((p) => `${p.x},${p.y}`).join(' ')}
+      fill={COLORS[focus]} fillOpacity="0.17" />}
+    <polygon className="polygon-boundary" opacity={step === STEP.cosine ? 0.4 : 1}
+      points={points.map((point) => { const p = screen(point); return `${p.x},${p.y}` }).join(' ')} />
     {geometry.sides.map((item, index) => {
       const middle = screen(item.midpoint)
       const outward = proof.projections[index].outward
@@ -111,14 +131,15 @@ function TrianglePicture({ points, proof, step, focus, center, layers, activeTil
         <text x={middle.x + outward.x * 19} y={middle.y + outward.y * 19} textAnchor="middle" dominantBaseline="middle" fill={COLORS[index]}>{'abc'[index]}</text>
       </g>
     })}
-    {layers.incircle && <g data-testid="carnot-proof-incircle">
+    {layers.incircle && step >= STEP.side && <g data-testid="carnot-proof-incircle">
       <circle cx={inner.x} cy={inner.y} r={geometry.inner.radius * RADIUS} fill="#bd6b4d" fillOpacity="0.04" stroke="#bd6b4d" strokeWidth="1.7" />
       <circle cx={inner.x} cy={inner.y} r="2.5" fill="#bd6b4d" />
       <text x={inner.x + 10} y={inner.y - 10} fill="#bd6b4d">I</text>
     </g>}
-    {layers.distances && geometry.sides.map((item, index) => {
+    {layers.distances && step >= STEP.cosine && geometry.sides.map((item, index) => {
+      if (step === STEP.cosine && index !== focus) return null
       const target = screen(item.foot)
-      const active = activeTile ? activeTile.row === index : step >= 3 || index === focus || step === 2
+      const active = activeTile ? activeTile.row === index : step >= STEP.side || index === focus
       return <g key={index} data-testid="carnot-proof-distance" data-value={item.signedDistance}
         opacity={active ? 1 : 0.22} style={{ color: negative(item.signedDistance) ? '#b65341' : COLORS[index] }}>
         <line x1={o.x} y1={o.y} x2={target.x} y2={target.y} stroke="currentColor"
@@ -128,15 +149,41 @@ function TrianglePicture({ points, proof, step, focus, center, layers, activeTil
         </text>
       </g>
     })}
-    {layers.construction && step === 1 && <g data-testid="carnot-radius-projection">
-      <line x1={o.x - projection.outward.x * RADIUS * 0.75} y1={o.y - projection.outward.y * RADIUS * 0.75}
-        x2={axis.x} y2={axis.y} stroke="#7d9183" strokeDasharray="3 5" markerEnd="url(#carnot-proof-axis-arrow)" />
-      <text x={axis.x + 8} y={axis.y - 8} fill="#7d9183">+</text>
+    {layers.construction && step === STEP.angles && <g data-testid="carnot-central-construction">
+      {[side.start, side.end].map((point, index) => {
+        const end = screen(point)
+        const dx = (end.x - o.x) / (geometry.outer.radius * RADIUS)
+        const dy = (end.y - o.y) / (geometry.outer.radius * RADIUS)
+        const mid = { x: (end.x + o.x) / 2, y: (end.y + o.y) / 2 }
+        return <g key={index} data-testid="carnot-equal-radius">
+          <line x1={o.x} y1={o.y} x2={end.x} y2={end.y} stroke="#487d82" strokeWidth="2" />
+          <line x1={mid.x - dy * 5} y1={mid.y + dx * 5} x2={mid.x + dy * 5} y2={mid.y - dx * 5} stroke="#487d82" strokeWidth="2" />
+          <text x={mid.x - dy * 15} y={mid.y + dx * 15} fill="#487d82">R</text>
+        </g>
+      })}
+      <line x1={o.x} y1={o.y} x2={bisector.x} y2={bisector.y} stroke={COLORS[focus]} strokeWidth="2"
+        strokeDasharray={rightAngle ? '4 5' : undefined} />
+      <Angle at={o} from={radiusEnd} to={screen(side.end)} label={`2${'ABC'[focus]}`} radius={72}
+        color={COLORS[focus]} through={axis} testId="carnot-central-angle" />
+      <Angle at={o} from={radiusEnd} to={bisector} label={halfLabel} radius={35} color={COLORS[focus]} testId="carnot-half-angle-first" />
+      <Angle at={o} from={bisector} to={screen(side.end)} label={halfLabel} radius={35} color={COLORS[focus]} testId="carnot-half-angle-second" />
+      <Angle at={screen(points[focus])} from={screen(side.start)} to={screen(side.end)} label={'ABC'[focus]} color={COLORS[focus]} testId="carnot-inscribed-angle" />
+    </g>}
+    {layers.construction && step === STEP.cosine && <g data-testid="carnot-radius-projection">
+      {obtuseAngle && <>
+        <line x1={o.x} y1={o.y} x2={axis.x} y2={axis.y} stroke="#7d9183" strokeDasharray="3 5" markerEnd="url(#carnot-proof-axis-arrow)" />
+        <text x={axis.x + 8} y={axis.y - 8} fill="#7d9183">+</text>
+      </>}
       <line x1={o.x} y1={o.y} x2={radiusEnd.x} y2={radiusEnd.y} stroke="#487d82" strokeWidth="2" />
-      <line x1={o.x} y1={o.y} x2={screen(side.end).x} y2={screen(side.end).y} stroke="#487d82" strokeOpacity="0.5" strokeDasharray="4 5" />
+      <line x1={radiusEnd.x} y1={radiusEnd.y} x2={foot.x} y2={foot.y} stroke={COLORS[focus]} strokeWidth="2" />
       <text x={(o.x + radiusEnd.x) / 2 - 12} y={(o.y + radiusEnd.y) / 2 - 9} fill="#487d82">R</text>
-      <Angle at={o} from={axis} to={radiusEnd} label={'ABC'[focus]} radius={36} color={COLORS[focus]} />
-      <Angle at={screen(points[focus])} from={screen(side.start)} to={screen(side.end)} label={'ABC'[focus]} color={COLORS[focus]} />
+      {!rightAngle && <Angle at={o} from={foot} to={radiusEnd} label={halfLabel} radius={36} color={COLORS[focus]} />}
+    </g>}
+    {layers.construction && step <= STEP.cosine && <g data-testid="carnot-chord-midpoint">
+      <circle cx={foot.x} cy={foot.y} r="3" fill={COLORS[focus]} />
+      <text x={rightAngle ? foot.x + 10 : foot.x + projection.outward.x * 20}
+        y={rightAngle ? foot.y + 18 : foot.y + projection.outward.y * 20} textAnchor={rightAngle ? 'start' : 'middle'}
+        dominantBaseline="middle" fill={COLORS[focus]}>{rightAngle ? 'M = O' : 'M'}</text>
       {Math.abs(side.signedDistance) > 1e-5 && (() => {
         const u = { x: (radiusEnd.x - foot.x) / (side.length * RADIUS / 2), y: (radiusEnd.y - foot.y) / (side.length * RADIUS / 2) }
         const length = Math.hypot(o.x - foot.x, o.y - foot.y)
@@ -146,7 +193,7 @@ function TrianglePicture({ points, proof, step, focus, center, layers, activeTil
           fill="none" stroke={COLORS[focus]} />
       })()}
     </g>}
-    {layers.construction && step === 2 && <g data-testid="carnot-side-projection">
+    {layers.construction && step === STEP.side && <g data-testid="carnot-side-projection">
       <line x1={screen(side.opposite).x} y1={screen(side.opposite).y} x2={altitude.x} y2={altitude.y}
         stroke="#839486" strokeDasharray="4 5" />
       {[{ from: screen(side.start), to: altitude, value: projection.first, color: COLORS[(focus + 1) % 3] },
@@ -169,7 +216,7 @@ function TrianglePicture({ points, proof, step, focus, center, layers, activeTil
       {points.map((point, index) => <Angle key={index} at={screen(point)}
         from={screen(points[(index + 1) % 3])} to={screen(points[(index + 2) % 3])} label={'ABC'[index]} color={COLORS[index]} />)}
     </g>}
-    {layers.construction && step === 3 && center === 'I' && geometry.sides.map((item, index) => {
+    {layers.construction && step === STEP.area && center === 'I' && geometry.sides.map((item, index) => {
       const touch = screen(item.touch)
       return <g key={index}><line x1={inner.x} y1={inner.y} x2={touch.x} y2={touch.y} stroke="#bd6b4d" strokeWidth="2" />
         <text x={(inner.x + touch.x) / 2 + 9} y={(inner.y + touch.y) / 2 - 6} fill="#bd6b4d">r</text></g>
@@ -264,7 +311,7 @@ export default function CarnotProofExplorer() {
   const [seed, setSeed] = useState(11)
   const [points, setPoints] = useState<TrianglePoints>(() => createCarnotTriangle(11))
   const [preset, setPreset] = useState<string | null>(null)
-  const [step, setStep] = useState(1)
+  const [step, setStep] = useState(STEP.angles)
   const [focus, setFocus] = useState(0)
   const [center, setCenter] = useState<'O' | 'I'>('O')
   const [group, setGroup] = useState<'All' | 'r pieces' | 'R pieces'>('All')
@@ -275,6 +322,13 @@ export default function CarnotProofExplorer() {
   const { geometry } = proof
   const j = (focus + 1) % 3
   const k = (focus + 2) % 3
+  const angleName = 'ABC'[focus]
+  const startName = 'ABC'[j]
+  const endName = 'ABC'[k]
+  const obtuseAngle = negative(geometry.sides[focus].signedDistance)
+  const rightAngle = Math.abs(geometry.sides[focus].signedDistance) < 1e-8
+  const degrees = proof.angles[focus] * 180 / Math.PI
+  const halfDegrees = obtuseAngle ? 180 - degrees : degrees
   const verified = Math.max(Math.abs(proof.innerArea - proof.inradiusArea), Math.abs(proof.outerArea - proof.circumradiusArea),
     Math.abs(proof.sumDistances - geometry.outer.radius - geometry.inner.radius)) < 1e-9
   const weighted = <span>a<D index={0} /> + b<D index={1} /> + c<D index={2} /></span>
@@ -315,12 +369,13 @@ export default function CarnotProofExplorer() {
           {['a / A', 'b / B', 'c / C'].map((label, index) => <label key={label}>
             <input type="radio" name="carnot-proof-focus" checked={focus === index} onChange={() => setFocus(index)} />{label}</label>)}
         </fieldset>
-        {step === 3 && <fieldset className="proof-view"><legend>Area center</legend>
+        {step === STEP.area && <fieldset className="proof-view"><legend>Area center</legend>
           {(['O', 'I'] as const).map((value) => <label key={value}><input type="radio" name="carnot-area-center"
             checked={center === value} onChange={() => setCenter(value)} />{value}</label>)}
         </fieldset>}
         <div className="proof-layer-controls">
           {([['circle', 'Circumcircle'], ['incircle', 'Incircle'], ['distances', 'Signed distances'], ['construction', 'Construction lines']] as const)
+            .filter(([key]) => step >= STEP.side || key === 'circle' || key === 'construction' || step === STEP.cosine && key === 'distances')
             .map(([key, label]) => <button key={key} className={`circle-toggle${layers[key] ? ' on' : ''}`} aria-pressed={layers[key]}
               onClick={() => setLayers((current) => ({ ...current, [key]: !current[key] }))}>
               <span>{label}</span><span className="switch" aria-hidden="true"><span /></span></button>)}
@@ -333,21 +388,56 @@ export default function CarnotProofExplorer() {
       <div className="proof-algebra-heading"><h2>{step}. {STEPS[step - 1].title}</h2>
         <span className={`invariant-badge${verified ? '' : ' error'}`}>{verified ? 'Live geometry agrees' : 'Numerical check failed'}</span></div>
       <div className="carnot-proof-explanation">
-        {step === 1 && <>
-          <div className="carnot-main-equation"><D index={focus} /> = R cos {'ABC'[focus]}</div>
-          <p>The perpendicular to a chord passes through its midpoint. The two radii to its endpoints form an isosceles triangle, so the marked angle at O equals the opposite inscribed angle, using the directed axis when obtuse.</p>
-          <p>The signed projection is measured along the axis marked +, not always along the visible ray to the side. Past 90°, it points the other way.</p>
-          <div className="carnot-numeric-equation">{format(geometry.sides[focus].signedDistance)} = {format(geometry.outer.radius)} × cos {(proof.angles[focus] * 180 / Math.PI).toFixed(2)}°</div>
+        {step === STEP.angles && <>
+          <div className="carnot-main-equation">{obtuseAngle ? 'Reflex ' : ''}∠{startName}O{endName} = 2{angleName}</div>
+          {rightAngle ? <p>The chord {startName}{endName} is a diameter: its central angle is 180°. M coincides with O, and the perpendicular axis makes 90° on each side. The distance <D index={focus} /> is zero.</p>
+            : <ol className="carnot-angle-reasoning">
+              <li>The angle-at-the-center theorem gives {obtuseAngle ? 'the reflex angle ' : ''}∠{startName}O{endName} = 2{angleName}.</li>
+              <li>O{startName} = O{endName} = R, so triangle O{startName}{endName} is isosceles. The matching radius ticks mark its equal sides.</li>
+              <li>OM is perpendicular to {startName}{endName}, so it also bisects {obtuseAngle ? 'the smaller central angle' : 'the central angle'}.
+                {obtuseAngle ? <> That smaller angle is 360° − 2{angleName}, so each half is θ = 180° − {angleName}.</>
+                  : <> Therefore ∠{startName}OM = ∠MO{endName} = {angleName}.</>}</li>
+            </ol>}
+          <div className="carnot-numeric-equation" data-testid="carnot-angle-halves">
+            {obtuseAngle ? `360° − ${(2 * degrees).toFixed(2)}°` : `${(2 * degrees).toFixed(2)}°`}
+            {' = '}{halfDegrees.toFixed(2)}° + {halfDegrees.toFixed(2)}°
+          </div>
+          <p>No trigonometry yet: first establish which angle belongs in the right triangle.</p>
         </>}
-        {step === 2 && <>
+        {step === STEP.cosine && <>
+          <div className="carnot-main-equation carnot-cosine-equation">cos {angleName} = {rightAngle ? '0 =' : obtuseAngle ? <>
+            −cos θ = −<Ratio top="OM" bottom={`O${startName}`} /> =
+          </> : <>
+            <Ratio top="adjacent" bottom="hypotenuse" /> = <Ratio top="OM" bottom={`O${startName}`} /> =
+          </>} <Ratio top={<D index={focus} />} bottom="R" /></div>
+          <div className="carnot-area-explanations">
+            <div><h3>Hypotenuse of triangle O{startName}M</h3><div className="carnot-small-equation">O{startName} = R</div><p>It runs from the center to a vertex on the circle.</p></div>
+            <div><h3>Adjacent leg at O</h3><div className="carnot-small-equation">OM = {obtuseAngle ? '−' : ''}<D index={focus} />{rightAngle ? ' = 0' : ''}</div>
+              <p>{rightAngle ? 'M and O coincide, so this leg has zero length.' : obtuseAngle
+                ? `The right-triangle angle is θ = 180° − ${angleName}. OM is a positive length, but the signed distance is negative.`
+                : `Step 1 established ∠${startName}OM = ${angleName}. The leg next to that angle is the perpendicular distance to the side.`}</p></div>
+          </div>
+          {rightAngle && <p>The right triangle has collapsed to a line. Use cos 90° = 0; the same signed-distance identity still holds.</p>}
+          <div className="carnot-numeric-equation">cos {degrees.toFixed(2)}° = {format(geometry.sides[focus].signedDistance)} / {format(geometry.outer.radius)}</div>
+          <p>The same construction works at every vertex: cos A = <D index={0} /> / R, cos B = <D index={1} /> / R, and cos C = <D index={2} /> / R.</p>
+        </>}
+        {step === STEP.side && <>
           <div className="carnot-main-equation">{'abc'[focus]} = {'abc'[k]} cos {'ABC'[j]} + {'abc'[j]} cos {'ABC'[k]}</div>
           <ProjectionChart proof={proof} focus={focus} />
-          <p>{'ABC'[j]}H + H{'ABC'[k]} = {'ABC'[j]}{'ABC'[k]}, with directed lengths if H falls beyond an endpoint. Substitute cos {'ABC'[j]} = <D index={j} /> / R and cos {'ABC'[k]} = <D index={k} /> / R, then multiply by R:</p>
+          <p>{startName}H + H{endName} = {startName}{endName}, with directed lengths if H falls beyond an endpoint.
+            Step 2 gives each cosine as adjacent leg / hypotenuse. Inspect either substitution in its own right-triangle diagram:</p>
+          <div className="carnot-substitutions">
+            {[j, k].map((index) => <button key={index} aria-label={`Explain cos ${'ABC'[index]}`}
+              onClick={() => { setFocus(index); setStep(STEP.cosine) }}>
+              cos {'ABC'[index]} = <Ratio top={<D index={index} />} bottom="R" />
+            </button>)}
+          </div>
+          <p>Substitute these two ratios into the side equation above, then multiply by R:</p>
           <div className="carnot-main-equation">{'abc'[focus]}R = {'abc'[k]}<D index={j} /> + {'abc'[j]}<D index={k} /></div>
           <div className="carnot-numeric-equation">{format(proof.projections[focus].leftArea)} = {format(proof.projections[focus].rightArea)}</div>
           <p>Choose each focus side to obtain the three identities needed for the six R pieces.</p>
         </>}
-        {step === 3 && <>
+        {step === STEP.area && <>
           <div className="carnot-main-equation">{weighted} = 2Δ = <span className="carnot-r-color">Pr</span></div>
           <div className="carnot-area-explanations"><div><h3>Center O: signed areas</h3>
             <p>Each triangle has area ½ × side × signed distance. A hatched triangle is subtracted; overlaps cancel.</p>
@@ -356,7 +446,7 @@ export default function CarnotProofExplorer() {
               <output data-testid="carnot-inradius-area">{format(proof.inradiusArea)}</output></div></div>
           <p>Δ denotes the triangle’s area. Use Area center O / I to compare the two dissections.</p>
         </>}
-        {step >= 4 && <>
+        {step >= STEP.tiles && <>
           <div className="carnot-main-equation">P(<D index={0} /> + <D index={1} /> + <D index={2} />) = <span className="carnot-r-color">Pr</span> + <span className="carnot-R-color">PR</span></div>
           <div className="carnot-ledger-controls" role="group" aria-label="Highlight area pieces">
             {(['All', 'r pieces', 'R pieces'] as const).map((value) => <button key={value} aria-pressed={group === value} onClick={() => setGroup(value)}>{value}</button>)}
@@ -373,7 +463,7 @@ export default function CarnotProofExplorer() {
               </button>)}
               <output data-testid="carnot-outer-tiles">{format(proof.outerArea)}</output></div></div>
         </>}
-        {step === 5 && <div className="carnot-proof-conclusion" data-testid="carnot-proof-conclusion">
+        {step === STEP.conclusion && <div className="carnot-proof-conclusion" data-testid="carnot-proof-conclusion">
           <div className="carnot-main-equation"><span className="carnot-cancelled">P</span>(<D index={0} /> + <D index={1} /> + <D index={2} />) = <span className="carnot-cancelled">P</span>(r + R)</div>
           <p>P is positive, so dividing both sides by P is valid.</p>
           <div className="carnot-main-equation"><D index={0} /> + <D index={1} /> + <D index={2} /> = R + r</div>
