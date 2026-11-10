@@ -32,7 +32,7 @@ function D({ index }: { index: number }) {
 }
 
 function Angle({ at, from, to, label, radius = 25, color, through, testId }: {
-  at: Point; from: Point; to: Point; label: string; radius?: number; color: string; through?: Point; testId?: string
+  at: Point; from: Point; to: Point; label?: string; radius?: number; color: string; through?: Point; testId?: string
 }) {
   const start = Math.atan2(from.y - at.y, from.x - at.x)
   const cross = (from.x - at.x) * (to.y - at.y) - (from.y - at.y) * (to.x - at.x)
@@ -49,8 +49,8 @@ function Angle({ at, from, to, label, radius = 25, color, through, testId }: {
   const middle = start + sweep / 2
   return <g stroke={color} fill="none" data-testid={testId}>
     <path d={`M${at.x + radius * Math.cos(start)},${at.y + radius * Math.sin(start)} A${radius},${radius} 0 ${Math.abs(sweep) > Math.PI ? 1 : 0} ${sweep > 0 ? 1 : 0} ${at.x + radius * Math.cos(end)},${at.y + radius * Math.sin(end)}`} />
-    <text x={at.x + (radius + 14) * Math.cos(middle)} y={at.y + (radius + 14) * Math.sin(middle)}
-      fill={color} textAnchor="middle" dominantBaseline="middle">{label}</text>
+    {label && <text x={at.x + (radius + 14) * Math.cos(middle)} y={at.y + (radius + 14) * Math.sin(middle)}
+      fill={color} textAnchor="middle" dominantBaseline="middle">{label}</text>}
   </g>
 }
 
@@ -163,7 +163,7 @@ function TrianglePicture({ points, proof, step, focus, center, layers, activeTil
       })}
       <line x1={o.x} y1={o.y} x2={bisector.x} y2={bisector.y} stroke={COLORS[focus]} strokeWidth="2"
         strokeDasharray={rightAngle ? '4 5' : undefined} />
-      <Angle at={o} from={radiusEnd} to={screen(side.end)} label={`2${'ABC'[focus]}`} radius={72}
+      <Angle at={o} from={radiusEnd} to={screen(side.end)} radius={72}
         color={COLORS[focus]} through={axis} testId="carnot-central-angle" />
       <Angle at={o} from={radiusEnd} to={bisector} label={halfLabel} radius={35} color={COLORS[focus]} testId="carnot-half-angle-first" />
       <Angle at={o} from={bisector} to={screen(side.end)} label={halfLabel} radius={35} color={COLORS[focus]} testId="carnot-half-angle-second" />

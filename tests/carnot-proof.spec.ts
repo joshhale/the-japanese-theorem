@@ -75,6 +75,7 @@ test('shows the central angle and its two correct halves before introducing the 
     const angle = Math.atan2(Math.abs(u.x * v.y - u.y * v.x), u.x * v.x + u.y * v.y)
     const center = { x: 320 + geometry.outer.x * 205, y: 320 + geometry.outer.y * 205 }
     const central = await renderedArc(page, 'carnot-central-angle', center)
+    await expect(page.getByTestId('carnot-central-angle').locator('text')).toHaveCount(0)
     expect(Math.abs(central.sweep)).toBeCloseTo(2 * angle, 8)
     if (Math.abs(2 * angle - Math.PI) > 1e-8) expect(central.large).toBe(2 * angle > Math.PI ? 1 : 0)
     const orientation = Math.sign((points[1].x - points[0].x) * (points[2].y - points[0].y)
