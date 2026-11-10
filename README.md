@@ -118,7 +118,9 @@ with an original nine-tile visualization of the final addition.
    Each substitution links back to its own cosine construction in Step 2.
    Change the focus side to obtain all three identities.
 4. Measure the triangle's area using O and I as alternate centers:
-   `a d_a + b d_b + c d_c = 2 area = Pr`.
+   `a d_a + b d_b + c d_c = 2 area = (a + b + c)r`.
+   Showing the incircle joins I to the vertices, giving three triangles of
+   height r. Hiding it switches the dissection to O and signed distances.
 5. Split three strips of width `P = a + b + c` into nine actual-area tiles.
    The three diagonal tiles sum to `Pr`. The other six pair up through the
    side-projection identities and sum to `PR`. Hatched tiles are subtracted.

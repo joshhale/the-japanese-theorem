@@ -214,7 +214,7 @@ test('walks through all constructions and compares the two area decompositions',
   const perimeter = geometry.sides.reduce((sum, side) => sum + side.length, 0)
   await expect(page.getByTestId('carnot-weighted-area')).toHaveText(weighted.toFixed(6))
   await expect(page.getByTestId('carnot-inradius-area')).toHaveText((perimeter * geometry.inner.radius).toFixed(6))
-  await page.getByRole('group', { name: 'Area center', exact: true }).getByRole('radio', { name: 'I', exact: true }).check()
+  await expect(page.getByRole('tabpanel', { name: 'Carnot proof' })).not.toContainText(/\b(?:P|Pr)\b/)
   await expect(page.locator('[data-testid="carnot-proof-area"][data-signed="negative"]')).toHaveCount(0)
   await page.getByRole('button', { name: '6 Cancel the perimeter' }).click()
   await expectActualTotals(page)
@@ -251,6 +251,39 @@ test('uses true signed tile areas, correct projection pairs, and linked geometry
   await expect(page.getByTestId('carnot-proof-distance').first().locator('line')).toHaveAttribute('stroke-width', '4')
 })
 
+test('switches the area triangles and heights with the incircle', async ({ page }) => {
+  await openProof(page)
+  await page.getByRole('button', { name: '4 Measure area twice' }).click()
+  const incircle = page.getByRole('button', { name: 'Incircle', exact: true })
+  for (const kind of ['Acute', 'Obtuse', 'Right']) {
+    await page.getByRole('button', { name: kind, exact: true }).click()
+    const points = await pointsIn(page)
+    const geometry = await actualGeometry(page)
+    for (const center of ['I', 'O', 'I'] as const) {
+      if (await incircle.getAttribute('aria-pressed') !== String(center === 'I')) await incircle.click()
+      await expect(page.getByTestId('carnot-proof-incircle')).toHaveCount(center === 'I' ? 1 : 0)
+      await expect(page.getByTestId('carnot-inradius-height')).toHaveCount(center === 'I' ? 3 : 0)
+      const triangles = await page.getByTestId('carnot-proof-area').evaluateAll((nodes) =>
+        nodes.map((node) => ({
+          points: node.getAttribute('points')?.split(' ').map((point) => point.split(',').map(Number)),
+          signed: node.getAttribute('data-signed'),
+        })))
+      expect(triangles).toHaveLength(3)
+      for (const [index, triangle] of triangles.entries()) {
+        const side = geometry.sides[index]
+        const expected = [center === 'I' ? geometry.inner : geometry.outer, side.start, side.end]
+        expect(triangle.points).toHaveLength(3)
+        expected.forEach((point, vertex) => {
+          expect(triangle.points?.[vertex][0]).toBeCloseTo(320 + point.x * 205, 6)
+          expect(triangle.points?.[vertex][1]).toBeCloseTo(320 + point.y * 205, 6)
+        })
+        expect(triangle.signed).toBe(center === 'O' && side.signedDistance < -1e-8 ? 'negative' : 'positive')
+      }
+      expect(await pointsIn(page)).toEqual(points)
+    }
+  }
+})
+
 test('handles obtuse and right examples without hiding negative or zero contributions', async ({ page }) => {
   await openProof(page)
   await page.getByRole('button', { name: 'Obtuse', exact: true }).click()
@@ -265,8 +298,9 @@ test('handles obtuse and right examples without hiding negative or zero contribu
   expect(parts.some((value) => value < 0)).toBe(true)
   expect(parts[parts.length - 1]).toBeLessThan(0)
   await page.getByRole('button', { name: '4 Measure area twice' }).click()
+  await page.getByRole('button', { name: 'Incircle', exact: true }).click()
   await expect(page.locator('[data-testid="carnot-proof-area"][data-signed="negative"]')).toHaveCount(1)
-  await page.getByRole('radio', { name: 'I', exact: true }).check()
+  await page.getByRole('button', { name: 'Incircle', exact: true }).click()
   await expect(page.locator('[data-testid="carnot-proof-area"][data-signed="negative"]')).toHaveCount(0)
   await page.getByRole('button', { name: '6 Cancel the perimeter' }).click()
   await expect(page.getByTestId('carnot-negative-tile')).toHaveCount(3)

@@ -18,7 +18,7 @@ const STEPS = [
   { title: 'Halve the central angle', text: 'The angle at the center is twice the angle at the circumference. Equal radii make an isosceles triangle; its perpendicular to the chord bisects the central angle.' },
   { title: 'Read the cosine', text: 'Keep just one of the right triangles from Step 1. Its hypotenuse is a radius R; its adjacent leg is OM. This is where cos A = d_a / R comes from.' },
   { title: 'Project a side', text: 'Drop an altitude to split a side into two signed projections. Replace each cosine using Step 2, then multiply by R. Repeat for all three sides.' },
-  { title: 'Measure area twice', text: 'Join O to the vertices, then try I instead. Both constructions measure the same triangle. Double the areas to remove the factor ½.' },
+  { title: 'Measure area twice', text: 'Hide the incircle to join O to the vertices; show it to join I instead. Both constructions measure the same triangle. Double the areas to remove the factor ½.' },
   { title: 'Collect the tiles', text: 'Make three strips of width P = a + b + c, with signed heights d_a, d_b, d_c. Three tiles give Pr; the other six give PR. Hatched tiles are subtracted.' },
   { title: 'Cancel the perimeter', text: 'The nine tiles have total signed area P(d_a + d_b + d_c) = Pr + PR. Divide by the positive perimeter P. What remains is Carnot’s theorem.' },
 ]
@@ -223,7 +223,7 @@ function TrianglePicture({ points, proof, step, focus, center, layers, activeTil
     </g>}
     {layers.construction && step === STEP.area && center === 'I' && geometry.sides.map((item, index) => {
       const touch = screen(item.touch)
-      return <g key={index}><line x1={inner.x} y1={inner.y} x2={touch.x} y2={touch.y} stroke="#bd6b4d" strokeWidth="2" />
+      return <g key={index} data-testid="carnot-inradius-height"><line x1={inner.x} y1={inner.y} x2={touch.x} y2={touch.y} stroke="#bd6b4d" strokeWidth="2" />
         <text x={(inner.x + touch.x) / 2 + 9} y={(inner.y + touch.y) / 2 - 6} fill="#bd6b4d">r</text></g>
     })}
     <circle cx={o.x} cy={o.y} r="3" fill="#487d82" /><text x={o.x + 10} y={o.y - 12} fill="#487d82">O</text>
@@ -318,7 +318,6 @@ export default function CarnotProofExplorer() {
   const [preset, setPreset] = useState<string | null>(null)
   const [step, setStep] = useState(STEP.angles)
   const [focus, setFocus] = useState(0)
-  const [center, setCenter] = useState<'O' | 'I'>('O')
   const [group, setGroup] = useState<'All' | 'r pieces' | 'R pieces'>('All')
   const [activeTile, setActiveTile] = useState<{ row: number; col: number } | null>(null)
   const [layers, setLayers] = useState<Layers>({ circle: true, incircle: true, distances: true, construction: true })
@@ -350,7 +349,7 @@ export default function CarnotProofExplorer() {
       <section className="drawing-card" aria-label="Carnot proof construction">
         <div className="drawing-header"><span className="diagram-title"><strong>Triangle ABC</strong></span>
           <span className="unit-label">CIRCUMRADIUS <strong>R = 1</strong></span></div>
-        <TrianglePicture points={points} proof={proof} step={step} focus={focus} center={center} layers={layers} activeTile={activeTile}
+        <TrianglePicture points={points} proof={proof} step={step} focus={focus} center={layers.incircle ? 'I' : 'O'} layers={layers} activeTile={activeTile}
           onRestore={setPoints} onMove={(index, angle) => { setPoints((current) => moveCarnotVertex(current, index, angle)); setPreset(null) }} />
         <div className="drawing-footer"><span className="diagram-title">Drag the vertices around the circle.</span>
           <span className="diagram-title">{'ABC'[focus]} = {(proof.angles[focus] * 180 / Math.PI).toFixed(1)}° · <D index={focus} /> = {format(geometry.sides[focus].signedDistance)}</span></div>
@@ -374,10 +373,6 @@ export default function CarnotProofExplorer() {
           {['a / A', 'b / B', 'c / C'].map((label, index) => <label key={label}>
             <input type="radio" name="carnot-proof-focus" checked={focus === index} onChange={() => setFocus(index)} />{label}</label>)}
         </fieldset>
-        {step === STEP.area && <fieldset className="proof-view"><legend>Area center</legend>
-          {(['O', 'I'] as const).map((value) => <label key={value}><input type="radio" name="carnot-area-center"
-            checked={center === value} onChange={() => setCenter(value)} />{value}</label>)}
-        </fieldset>}
         <div className="proof-layer-controls">
           {([['circle', 'Circumcircle'], ['incircle', 'Incircle'], ['distances', 'Signed distances'], ['construction', 'Construction lines']] as const)
             .filter(([key]) => step >= STEP.side || key === 'circle' || key === 'construction' || step === STEP.cosine && key === 'distances')
@@ -443,13 +438,13 @@ export default function CarnotProofExplorer() {
           <p>Choose each focus side to obtain the three identities needed for the six R pieces.</p>
         </>}
         {step === STEP.area && <>
-          <div className="carnot-main-equation">{weighted} = 2Δ = <span className="carnot-r-color">Pr</span></div>
+          <div className="carnot-main-equation">{weighted} = 2Δ = <span className="carnot-r-color">(a + b + c)r</span></div>
           <div className="carnot-area-explanations"><div><h3>Center O: signed areas</h3>
             <p>Each triangle has area ½ × side × signed distance. A hatched triangle is subtracted; overlaps cancel.</p>
             <output data-testid="carnot-weighted-area">{format(proof.innerArea)}</output></div>
-            <div><h3>Center I: all heights equal r</h3><p>The three heights are inradii: ar + br + cr = (a + b + c)r = Pr. Here P is the whole perimeter, not the semiperimeter.</p>
+            <div><h3>Center I: all heights equal r</h3><p>The incircle touches every side, so all three perpendicular heights are r. Adding the doubled triangle areas gives ar + br + cr = (a + b + c)r.</p>
               <output data-testid="carnot-inradius-area">{format(proof.inradiusArea)}</output></div></div>
-          <p>Δ denotes the triangle’s area. Use Area center O / I to compare the two dissections.</p>
+          <p>Δ denotes the triangle’s area. Hide the incircle for the O dissection; show it for the I dissection.</p>
         </>}
         {step >= STEP.tiles && <>
           <div className="carnot-main-equation">P(<D index={0} /> + <D index={1} /> + <D index={2} />) = <span className="carnot-r-color">Pr</span> + <span className="carnot-R-color">PR</span></div>
