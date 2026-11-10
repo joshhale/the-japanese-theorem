@@ -228,6 +228,40 @@ test('filters each diagram to the selected triangle without changing geometry, s
   await expect(page.locator('.proof-cancel-mark')).toHaveCount(2)
 })
 
+test('anchors each diagonal distance at O and its perpendicular foot in every triangle view', async ({ page }) => {
+  await openProof(page)
+  const triangleView = page.getByRole('group', { name: 'Triangle view', exact: true })
+  async function expectEndpoints() {
+    const points = await pointsIn(page)
+    for (const [diagonal, start, end] of [['AC', 0, 2], ['BD', 1, 3]] as const) {
+      const construction = page.getByTestId(`proof-${diagonal}`).getByTestId('proof-diagonal-contributions')
+      const lines = construction.locator('line')
+      await expect(lines).toHaveCount(1)
+      const line = await lines.evaluate((node) => {
+        if (!(node instanceof SVGLineElement)) throw new Error('Expected a distance segment')
+        return { x1: node.x1.baseVal.value, y1: node.y1.baseVal.value, x2: node.x2.baseVal.value, y2: node.y2.baseVal.value }
+      })
+      expect(line.x1).toBe(320)
+      expect(line.y1).toBe(320)
+      expect(line.x2).toBeCloseTo(320 + (points[start].x + points[end].x) / 2 * 247, 3)
+      expect(line.y2).toBeCloseTo(320 + (points[start].y + points[end].y) / 2 * 247, 3)
+      const value = Number(await construction.getByTestId('proof-diagonal-distance').first().getAttribute('data-value'))
+      expect(Math.hypot(line.x2 - line.x1, line.y2 - line.y1)).toBeCloseTo(Math.abs(value) * 247, 3)
+    }
+  }
+  for (const seed of ['5', '7']) {
+    await page.getByRole('slider', { name: 'Quadrilateral seed' }).fill(seed)
+    for (const view of ['Both', 'First', 'Second']) {
+      await triangleView.getByRole('radio', { name: view, exact: true }).check()
+      await expectEndpoints()
+    }
+  }
+  const vertex = page.getByRole('button', { name: 'Quadrilateral AC vertex C', exact: true })
+  await vertex.focus()
+  await vertex.press('Shift+ArrowLeft')
+  await expectEndpoints()
+})
+
 test('keeps the proof usable on mobile without horizontal overflow or browser errors', async ({ page }, testInfo) => {
   const errors: string[] = []
   page.on('pageerror', (error) => errors.push(error.message))

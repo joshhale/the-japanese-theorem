@@ -171,10 +171,10 @@ function ProofDiagram({ diagonal, points, triangles, boundary, triangleView, ste
           const length = Math.hypot(foot.x - 320, foot.y - 320)
           const nx = length > 1e-8 ? -(foot.y - 320) / length : 1
           const ny = length > 1e-8 ? (foot.x - 320) / length : 0
-          const offset = index === 0 ? 6 : -6
           return <g key={triangle.label} data-value={term.value} data-testid="proof-diagonal-distance">
-            <line x1={320 + nx * offset} y1={320 + ny * offset} x2={foot.x + nx * offset} y2={foot.y + ny * offset}
-              stroke="#b66b4b" strokeWidth="2.5" strokeDasharray={negative(term.value) ? '5 4' : undefined} />
+            {(triangleView !== 'Both' || index === 0) && <line x1="320" y1="320" x2={foot.x} y2={foot.y}
+              stroke="#b66b4b" strokeWidth="2.5"
+              strokeDasharray={triangleView !== 'Both' && negative(term.value) ? '5 4' : undefined} />}
             <text x={(320 + foot.x) / 2 + nx * (index === 0 ? 25 : -30)}
               y={(320 + foot.y) / 2 + ny * (index === 0 ? 25 : -30)} fill="#b66b4b" textAnchor="middle">
               {index === 0 ? '+' : '−'}δ
