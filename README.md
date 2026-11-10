@@ -104,7 +104,7 @@ these totals is substituted for another. All lengths use R = 1.
 The fourth tab proves Carnot's theorem through signed projections and areas.
 It follows the elementary projection-and-area argument in
 [Alexander Bogomolny's Carnot's Theorem, Proof 1](https://www.cut-the-knot.org/proofs/carnot.shtml),
-with an original nine-tile visualization of the final addition.
+with an interactive nine-term expansion of the final addition.
 
 1. Halve the central angle: show the angle `2A`, equal radii OB and OC,
    midpoint M, and perpendicular OM. The two half-angles are A when A is acute,
@@ -121,13 +121,14 @@ with an original nine-tile visualization of the final addition.
    `a d_a + b d_b + c d_c = 2 area = (a + b + c)r`.
    Showing the incircle joins I to the vertices, giving three triangles of
    height r. Hiding it switches the dissection to O and signed distances.
-5. Split three strips of width `P = a + b + c` into nine actual-area tiles.
-   The three diagonal tiles sum to `Pr`. The other six pair up through the
-   Step 3 identities: `c d_b + b d_c = aR`, and similarly for `bR` and `cR`.
-   Matching colors link each pair to its clickable equation; a selected pair
-   can be revisited in Step 3. Adding all three gives `aR + bR + cR = PR`.
-   Hatched tiles are subtracted.
-6. Divide `P(d_a + d_b + d_c) = P(r + R)` by the positive perimeter P.
+5. Expand `(a + b + c)(d_a + d_b + d_c)` into a 3-by-3 grid with addition signs.
+   Hover or focus any term to highlight its collection: the three diagonal
+   terms give `r(a + b + c)` by Step 4, while the other six pair up through
+   Step 3 to give `aR`, `bR`, and `cR`. Click or tap to retain a selection.
+   Collect these into `(a + b + c)r + (a + b + c)R`, then factor out and
+   cancel the positive perimeter to conclude `d_a + d_b + d_c = r + R`.
+   The geometric tile view remains available as supporting material;
+   hatched tiles are subtracted.
 
 Choose 25 seeds or explicit acute, right, and obtuse examples. Drag vertices
 around the unit circle, or use arrow keys (Shift for larger movements). Escape

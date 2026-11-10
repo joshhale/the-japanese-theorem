@@ -13,15 +13,18 @@ const RADIUS = 205
 const screen = (point: Point) => ({ x: 320 + point.x * RADIUS, y: 320 + point.y * RADIUS })
 const format = (value: number) => (Math.abs(value) < 0.0000005 ? 0 : value).toFixed(6)
 const negative = (value: number) => value < -1e-8
-const STEP = { angles: 1, cosine: 2, side: 3, area: 4, tiles: 5, conclusion: 6 }
+const STEP = { angles: 1, cosine: 2, side: 3, area: 4, algebra: 5 }
 const STEPS = [
   { title: 'Halve the central angle', text: 'The angle at the center is twice the angle at the circumference. Equal radii make an isosceles triangle; its perpendicular to the chord bisects the central angle.' },
   { title: 'Read the cosine', text: 'Keep just one of the right triangles from Step 1. Its hypotenuse is a radius R; its adjacent leg is OM. This is where cos A = d_a / R comes from.' },
   { title: 'Project a side', text: 'Drop an altitude to split a side into two signed projections. Replace each cosine using Step 2, then multiply by R. Repeat for all three sides.' },
   { title: 'Measure area twice', text: 'Hide the incircle to join O to the vertices; show it to join I instead. Both constructions measure the same triangle. Double the areas to remove the factor ½.' },
-  { title: 'Collect the tiles', text: 'The three diagonal tiles total Pr by Step 4. Use the three side-projection identities from Step 3 to pair the other six into aR, bR, and cR.' },
-  { title: 'Cancel the perimeter', text: 'The nine tiles have total signed area P(d_a + d_b + d_c) = Pr + PR. Divide by the positive perimeter P. What remains is Carnot’s theorem.' },
+  { title: 'Collect the terms', text: 'Expand the product into nine terms. Step 4 collects the three diagonal terms; Step 3 collects the other six in pairs. Factor out the perimeter, then cancel it.' },
 ]
+
+function termGroup({ row, col }: { row: number; col: number }): 'r' | number {
+  return row === col ? 'r' : 3 - row - col
+}
 
 function Ratio({ top, bottom }: { top: ReactNode; bottom: ReactNode }) {
   return <span className="carnot-fraction"><span>{top}</span><span>{bottom}</span></span>
@@ -273,8 +276,8 @@ function ProjectionChart({ proof, focus }: { proof: Proof; focus: number }) {
   </svg>
 }
 
-function AreaLedger({ proof, focus, group, onHover }: {
-  proof: Proof; focus: number; group: 'All' | 'r pieces' | 'R pieces'
+function AreaLedger({ proof, highlight, onHover }: {
+  proof: Proof; highlight: 'r' | number | null
   onHover: (tile: { row: number; col: number } | null) => void
 }) {
   const totalHeight = proof.geometry.sides.reduce((sum, side) => sum + Math.abs(side.signedDistance), 0)
@@ -287,14 +290,14 @@ function AreaLedger({ proof, focus, group, onHover }: {
     <defs><pattern id="carnot-tile-negative" width="7" height="7" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
       <line x1="0" x2="0" y1="0" y2="7" stroke="#b65341" strokeWidth="2" />
     </pattern></defs>
-    <text x={(xs[0] + xs[3]) / 2} y="18" className="carnot-tile-perimeter">P = a + b + c</text>
+    <text x={(xs[0] + xs[3]) / 2} y="18" className="carnot-tile-perimeter">a + b + c</text>
     {proof.geometry.sides.map((_, col) => <text key={col} x={(xs[col] + xs[col + 1]) / 2} y="45" textAnchor="middle">{'abc'[col]}</text>)}
     {proof.geometry.sides.map((side, row) => <text key={row} x="80" y={ys[row] + Math.abs(side.signedDistance) * scale / 2}
       textAnchor="end" dominantBaseline="middle" style={{ fill: COLORS[row] }}>d<tspan baselineShift="sub" fontSize="12">{'abc'[row]}</tspan>{negative(side.signedDistance) ? ' < 0' : ''}</text>)}
     {proof.tiles.map((tile) => {
-      const pair = 3 - tile.row - tile.col
-      const color = tile.inner ? '#bd6b4d' : COLORS[pair]
-      const highlighted = group === 'All' || (group === 'r pieces' ? tile.inner : !tile.inner && pair === focus)
+      const collection = termGroup(tile)
+      const color = collection === 'r' ? '#bd6b4d' : COLORS[collection]
+      const highlighted = highlight === null || collection === highlight
       const height = Math.abs(tile.height) * scale
       return <g key={`${tile.row}-${tile.col}`} role="button" tabIndex={0}
         aria-label={`${'abc'[tile.col]} times d_${'abc'[tile.row]}: ${format(tile.area)}, ${tile.inner ? 'inradius' : 'circumradius'} piece`}
@@ -340,6 +343,7 @@ export default function CarnotProofExplorer() {
   const verified = Math.max(Math.abs(proof.innerArea - proof.inradiusArea), Math.abs(proof.outerArea - proof.circumradiusArea),
     Math.abs(proof.sumDistances - geometry.outer.radius - geometry.inner.radius)) < 1e-9
   const weighted = <span>a<D index={0} /> + b<D index={1} /> + c<D index={2} /></span>
+  const collection = activeTile ? termGroup(activeTile) : group === 'All' ? null : group === 'r pieces' ? 'r' : focus
 
   function reset(nextSeed: number) {
     setSeed(nextSeed)
@@ -450,41 +454,84 @@ export default function CarnotProofExplorer() {
               <output data-testid="carnot-inradius-area">{format(proof.inradiusArea)}</output></div></div>
           <p>Δ denotes the triangle’s area. Hide the incircle for the O dissection; show it for the I dissection.</p>
         </>}
-        {step >= STEP.tiles && <>
-          <p>Let P = a + b + c, the whole perimeter. The nine tiles split into two groups:</p>
-          <div className="carnot-area-explanations"><div className="carnot-r-color"><h3>Three diagonal tiles: use Step 4</h3>
-            <div className="carnot-small-equation">{weighted} = (a + b + c)r = Pr</div>
-            <output data-testid="carnot-inner-tiles">{format(proof.innerArea)}</output></div>
-            <div className="carnot-R-color"><h3>Six remaining tiles: pair them using Step 3</h3>
-              <p>Each pair, not each tile, equals a side times R. Click an equation to highlight its two matching-colored tiles.</p>
+        {step === STEP.algebra && <>
+          <div className="carnot-main-equation" data-testid="carnot-expanded-product">
+            <span>(a + b + c)</span><span>(<D index={0} /> + <D index={1} /> + <D index={2} />)</span>
+          </div>
+          <p id="carnot-expansion-help">Expand the product. Hover or focus a term to see its group; tap or click to keep that group selected.</p>
+          <div className="carnot-expansion" role="group" aria-label="Nine-term expansion">
+            {proof.tiles.map((tile, index) => {
+              const termCollection = termGroup(tile)
+              return <div key={`${tile.row}-${tile.col}`} className="carnot-expansion-cell">
+                <span className="carnot-expansion-plus">{index === 0 ? '=' : '+'}</span>
+                <button className="carnot-expanded-term" data-testid="carnot-expansion-term"
+                  data-row={tile.row} data-col={tile.col} data-value={tile.area}
+                  data-highlighted={collection === termCollection}
+                  data-dimmed={collection !== null && collection !== termCollection}
+                  style={{ color: termCollection === 'r' ? '#bd6b4d' : COLORS[termCollection] }}
+                  aria-label={`${'abc'[tile.col]} times d_${'abc'[tile.row]}`}
+                  aria-describedby="carnot-expansion-help"
+                  onPointerEnter={() => setActiveTile(tile)}
+                  onPointerLeave={(event) => { if (document.activeElement !== event.currentTarget) setActiveTile(null) }}
+                  onFocus={() => setActiveTile(tile)} onBlur={() => setActiveTile(null)}
+                  onClick={() => {
+                    setGroup(termCollection === 'r' ? 'r pieces' : 'R pieces')
+                    if (termCollection !== 'r') setFocus(termCollection)
+                    setActiveTile(tile)
+                  }}>
+                  {'abc'[tile.col]}<D index={tile.row} />
+                </button>
+              </div>
+            })}
+          </div>
+          <button className="text-button carnot-show-all" onClick={() => { setGroup('All'); setActiveTile(null) }}>Show all terms</button>
+          <div className="carnot-collection carnot-r-color" data-testid="carnot-r-collection"
+            data-highlighted={collection === 'r'} data-dimmed={collection !== null && collection !== 'r'}>
+            <h3>Three diagonal terms, from Step 4</h3>
+            <div className="carnot-small-equation">{weighted} = r(a + b + c)</div>
+          </div>
+          <h3 className="carnot-pairs-heading">Three pairs, from Step 3</h3>
+          <div className="carnot-pair-identities">
               {geometry.sides.map((_, index) => <button key={index} className="carnot-projection-identity"
                 data-testid="carnot-projection-pair" style={{ color: COLORS[index] }}
+                data-highlighted={collection === index} data-dimmed={collection !== null && collection !== index}
                 aria-pressed={group === 'R pieces' && focus === index}
-                onClick={() => { setFocus(index); setGroup('R pieces') }}>
+                onClick={() => { setFocus(index); setGroup('R pieces'); setActiveTile(null) }}>
                 {'abc'[(index + 2) % 3]}<D index={(index + 1) % 3} /> + {'abc'[(index + 1) % 3]}<D index={(index + 2) % 3} /> = {'abc'[index]}R
               </button>)}
-              <p>Add the three pairs, counting each of the six tiles exactly once:</p>
-              <div className="carnot-small-equation" data-testid="carnot-R-pair-total">aR + bR + cR = (a + b + c)R = PR</div>
-              <output data-testid="carnot-outer-tiles">{format(proof.outerArea)}</output>
-              {group === 'R pieces' && <button className="text-button carnot-revisit-projection"
-                onClick={() => { setStep(STEP.side); setActiveTile(null) }}>Revisit Step 3 for side {'abc'[focus]}</button>}
-            </div></div>
-          <div className="carnot-ledger-controls" role="group" aria-label="Highlight area pieces">
-            {(['All', 'r pieces', 'R pieces'] as const).map((value) => <button key={value} aria-pressed={group === value} onClick={() => setGroup(value)}>{value}</button>)}
           </div>
-          <AreaLedger proof={proof} focus={focus} group={group} onHover={setActiveTile} />
-          <p className="carnot-ledger-hint">Matching colors mark each R pair. Actual widths and signed areas share one scale; hatching means subtract. Hover or focus a tile to highlight its base and height.</p>
-          <div className="carnot-main-equation">P(<D index={0} /> + <D index={1} /> + <D index={2} />) = <span className="carnot-r-color">Pr</span> + <span className="carnot-R-color">PR</span></div>
+          {group === 'R pieces' && <button className="text-button carnot-revisit-projection"
+            onClick={() => { setStep(STEP.side); setActiveTile(null) }}>Revisit Step 3 for side {'abc'[focus]}</button>}
+          <p>Collect these four groups, then factor the three R terms:</p>
+          <div className="carnot-main-equation" data-testid="carnot-collected-groups">
+            = <span className="carnot-r-color">r(a + b + c)</span>
+            {geometry.sides.map((_, index) => <span key={index}> + <span style={{ color: COLORS[index] }}>{'abc'[index]}R</span></span>)}
+          </div>
+          <div className="carnot-main-equation" data-testid="carnot-collected-sum">
+            = <span className="carnot-r-color">(a + b + c)r</span> + <span className="carnot-R-color">(a + b + c)R</span>
+          </div>
+          <div className="carnot-proof-conclusion" data-testid="carnot-proof-conclusion">
+            <div className="carnot-main-equation" data-testid="carnot-factored-equality">
+              <span>(a + b + c)(<D index={0} /> + <D index={1} /> + <D index={2} />)</span>
+              = <span>(a + b + c)(r + R)</span>
+            </div>
+            <p>The perimeter a + b + c is positive, so divide both sides by it.</p>
+            <div className="carnot-main-equation" data-testid="carnot-final-identity"><D index={0} /> + <D index={1} /> + <D index={2} /> = r + R</div>
+            <div className="carnot-numeric-equation"><output data-testid="carnot-proof-sum">{format(proof.sumDistances)}</output> = <output data-testid="carnot-proof-radii">{format(geometry.outer.radius + geometry.inner.radius)}</output></div>
+            <CarnotSegments outerRadius={geometry.outer.radius} innerRadius={geometry.inner.radius}
+              distances={geometry.sides.map((item) => item.signedDistance)} lengthUnit={1} />
+            <p>Both sides are calculated independently from the current triangle, at full precision.</p>
+          </div>
+          <details className="carnot-supporting-tiles">
+            <summary>Geometric tile view</summary>
+            <div className="carnot-ledger-controls" role="group" aria-label="Highlight area pieces">
+              {(['All', 'r pieces', 'R pieces'] as const).map((value) => <button key={value} aria-pressed={group === value}
+                onClick={() => { setGroup(value); setActiveTile(null) }}>{value}</button>)}
+            </div>
+            <AreaLedger proof={proof} highlight={collection} onHover={setActiveTile} />
+            <p className="carnot-ledger-hint">Actual widths and signed areas share one scale; hatching means subtract. Hover or focus a tile to highlight its base and height.</p>
+          </details>
         </>}
-        {step === STEP.conclusion && <div className="carnot-proof-conclusion" data-testid="carnot-proof-conclusion">
-          <div className="carnot-main-equation"><span className="carnot-cancelled">P</span>(<D index={0} /> + <D index={1} /> + <D index={2} />) = <span className="carnot-cancelled">P</span>(r + R)</div>
-          <p>P is positive, so dividing both sides by P is valid.</p>
-          <div className="carnot-main-equation"><D index={0} /> + <D index={1} /> + <D index={2} /> = R + r</div>
-          <div className="carnot-numeric-equation"><output data-testid="carnot-proof-sum">{format(proof.sumDistances)}</output> = <output data-testid="carnot-proof-radii">{format(geometry.outer.radius + geometry.inner.radius)}</output></div>
-          <CarnotSegments outerRadius={geometry.outer.radius} innerRadius={geometry.inner.radius}
-            distances={geometry.sides.map((item) => item.signedDistance)} lengthUnit={1} />
-          <p>Both sides are calculated independently from the current triangle, at full precision.</p>
-        </div>}
       </div>
       <div className="carnot-proof-source">Proof approach: <a href="https://www.cut-the-knot.org/proofs/carnot.shtml" target="_blank" rel="noreferrer">Alexander Bogomolny, Carnot’s Theorem, Proof 1</a>. The tile ledger visualizes the same projection-and-area argument.</div>
     </section>

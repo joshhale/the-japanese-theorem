@@ -47,8 +47,8 @@ test('navigates the fourth tab accessibly and preserves its construction and pro
   await first.press('End')
   await expect(fourth).toBeFocused()
   await page.getByRole('slider', { name: 'Proof triangle seed' }).fill('15')
-  await page.getByRole('button', { name: '5 Collect the tiles' }).click()
-  await page.getByRole('button', { name: 'r pieces', exact: true }).click()
+  await page.getByRole('button', { name: '5 Collect the terms' }).click()
+  await page.getByTestId('carnot-expansion-term').first().click()
   const points = await pointsIn(page)
   await fourth.focus()
   await fourth.press('ArrowRight')
@@ -56,8 +56,8 @@ test('navigates the fourth tab accessibly and preserves its construction and pro
   await first.press('ArrowLeft')
   await expect(fourth).toBeFocused()
   await expect(page.getByRole('slider', { name: 'Proof triangle seed' })).toHaveValue('15')
-  await expect(page.getByRole('button', { name: '5 Collect the tiles' })).toHaveAttribute('aria-pressed', 'true')
-  await expect(page.getByRole('button', { name: 'r pieces', exact: true })).toHaveAttribute('aria-pressed', 'true')
+  await expect(page.getByRole('button', { name: '5 Collect the terms' })).toHaveAttribute('aria-pressed', 'true')
+  await expect(page.getByTestId('carnot-r-collection')).toHaveAttribute('data-highlighted', 'true')
   expect(await pointsIn(page)).toEqual(points)
 })
 
@@ -216,15 +216,88 @@ test('walks through all constructions and compares the two area decompositions',
   await expect(page.getByTestId('carnot-inradius-area')).toHaveText((perimeter * geometry.inner.radius).toFixed(6))
   await expect(page.getByRole('tabpanel', { name: 'Carnot proof' })).not.toContainText(/\b(?:P|Pr)\b/)
   await expect(page.locator('[data-testid="carnot-proof-area"][data-signed="negative"]')).toHaveCount(0)
-  await page.getByRole('button', { name: '6 Cancel the perimeter' }).click()
+  await page.getByRole('button', { name: '5 Collect the terms' }).click()
+  await expect(page.getByRole('group', { name: 'Carnot proof steps' }).getByRole('button')).toHaveCount(5)
   await expectActualTotals(page)
   await expect(page.getByRole('img', { name: 'Length comparison of R plus r and the signed Carnot distances' })).toBeVisible()
   await page.screenshot({ path: testInfo.outputPath('carnot-proof-desktop.png'), fullPage: true })
 })
 
+test('expands nine terms and collects every hovered, focused, or selected group', async ({ page }) => {
+  await openProof(page)
+  await page.getByRole('button', { name: '5 Collect the terms', exact: true }).click()
+  await expect(page.locator('.carnot-proof-explanation > :first-child')).toHaveAttribute('data-testid', 'carnot-expanded-product')
+  const terms = page.getByTestId('carnot-expansion-term')
+  const highlighted = page.locator('[data-testid="carnot-expansion-term"][data-highlighted="true"]')
+  const readGroup = () => highlighted.evaluateAll((nodes) =>
+    nodes.map((node) => `${node.getAttribute('data-row')},${node.getAttribute('data-col')}`).sort())
+  await expect(terms).toHaveCount(9)
+  await expect(page.locator('.carnot-expansion-plus')).toHaveText(['=', '+', '+', '+', '+', '+', '+', '+', '+'])
+  const boxes = await terms.evaluateAll((nodes) => nodes.map((node) => {
+    const box = node.getBoundingClientRect()
+    return { x: box.x, y: box.y }
+  }))
+  for (let index = 0; index < 9; index++) {
+    expect(boxes[index].y).toBeCloseTo(boxes[Math.floor(index / 3) * 3].y, 3)
+    expect(boxes[index].x).toBeCloseTo(boxes[index % 3].x, 3)
+    if (index % 3) expect(boxes[index].x).toBeGreaterThan(boxes[index - 1].x)
+    if (index >= 3) expect(boxes[index].y).toBeGreaterThan(boxes[index - 3].y)
+  }
+  const geometry = await actualGeometry(page)
+  const perimeter = geometry.sides.reduce((sum, side) => sum + side.length, 0)
+  for (let index = 0; index < 9; index++) {
+    await terms.nth(index).hover()
+    const row = Math.floor(index / 3)
+    const col = index % 3
+    const diagonal = row === col
+    const expected = diagonal ? ['0,0', '1,1', '2,2'] : [`${row},${col}`, `${col},${row}`].sort()
+    expect(await readGroup()).toEqual(expected)
+    await expect(highlighted.first()).toHaveCSS('opacity', '1')
+    await expect(page.locator('[data-testid="carnot-expansion-term"][data-dimmed="true"]').first()).toHaveCSS('opacity', '0.3')
+    const sum = await highlighted.evaluateAll((nodes) => nodes.reduce((total, node) => total + Number(node.getAttribute('data-value')), 0))
+    if (diagonal) {
+      await expect(page.getByTestId('carnot-r-collection')).toHaveAttribute('data-highlighted', 'true')
+      expect(sum).toBeCloseTo(perimeter * geometry.inner.radius, 10)
+    } else {
+      const side = [0, 1, 2].find((candidate) => candidate !== row && candidate !== col)
+      if (side === undefined) throw new Error('An off-diagonal pair must correspond to one side')
+      await expect(page.getByTestId('carnot-projection-pair').nth(side)).toHaveAttribute('data-highlighted', 'true')
+      expect(sum).toBeCloseTo(geometry.sides[side].length * geometry.outer.radius, 10)
+    }
+  }
+  await page.locator('#carnot-expansion-help').hover()
+  await expect(highlighted).toHaveCount(0)
+  await terms.nth(1).focus()
+  expect(await readGroup()).toEqual(['0,1', '1,0'])
+  await terms.nth(1).press('Enter')
+  await expect(page.getByRole('radio', { name: 'c / C', exact: true })).toBeChecked()
+  await page.getByRole('button', { name: 'Show all terms', exact: true }).click()
+  await expect(highlighted).toHaveCount(0)
+  await terms.nth(2).click()
+  await page.locator('#carnot-expansion-help').hover()
+  expect(await readGroup()).toEqual(['0,2', '2,0'])
+  await page.getByRole('button', { name: 'Show all terms', exact: true }).click()
+  for (const kind of ['Obtuse', 'Right']) {
+    await page.getByRole('button', { name: kind, exact: true }).click()
+    const actual = await actualGeometry(page)
+    const values = await terms.evaluateAll((nodes) => nodes.map((node) => Number(node.getAttribute('data-value'))))
+    expect(values).toHaveLength(9)
+    values.forEach((value, index) => {
+      expect(value).toBeCloseTo(actual.sides[index % 3].length * actual.sides[Math.floor(index / 3)].signedDistance, 10)
+    })
+    expect(values.filter((value) => kind === 'Obtuse' ? value < -1e-8 : Math.abs(value) < 1e-8)).toHaveLength(3)
+    await expectActualTotals(page)
+  }
+  await expect(page.getByTestId('carnot-collected-groups')).toContainText('r(a + b + c)')
+  await expect(page.getByTestId('carnot-collected-sum')).toContainText('(a + b + c)R')
+  await expect(page.getByTestId('carnot-factored-equality')).toContainText('(a + b + c)(r + R)')
+  await expect(page.getByTestId('carnot-final-identity')).toContainText('= r + R')
+})
+
 test('uses true signed tile areas, correct projection pairs, and linked geometry highlighting', async ({ page }) => {
   await openProof(page)
-  await page.getByRole('button', { name: '5 Collect the tiles' }).click()
+  await page.getByRole('button', { name: '5 Collect the terms' }).click()
+  await page.getByText('Geometric tile view', { exact: true }).click()
   const geometry = await actualGeometry(page)
   const tiles = await page.getByTestId('carnot-area-tile').evaluateAll((nodes) => nodes.map((node) => {
     const rect = node.querySelector('rect')
@@ -239,7 +312,8 @@ test('uses true signed tile areas, correct projection pairs, and linked geometry
     expect(tile.pixels / Math.abs(tile.area)).toBeCloseTo(areaScale, 7)
   })
   expect(new Set(tiles.filter((tile) => !tile.inner).map((tile) => tile.color)).size).toBe(3)
-  await expect(page.getByTestId('carnot-R-pair-total')).toHaveText('aR + bR + cR = (a + b + c)R = PR')
+  await expect(page.getByTestId('carnot-collected-sum')).toContainText('(a + b + c)r')
+  await expect(page.getByTestId('carnot-collected-sum')).toContainText('(a + b + c)R')
   await page.getByRole('button', { name: 'r pieces', exact: true }).click()
   await expect(page.locator('[data-testid="carnot-area-tile"][opacity="1"]')).toHaveCount(3)
   await page.getByRole('button', { name: 'R pieces', exact: true }).click()
@@ -266,9 +340,10 @@ test('uses true signed tile areas, correct projection pairs, and linked geometry
   await expect(page.getByRole('button', { name: '3 Project a side', exact: true })).toHaveAttribute('aria-pressed', 'true')
   await expect(page.getByRole('radio', { name: 'c / C', exact: true })).toBeChecked()
   await expect(page.getByTestId('carnot-side-projection')).toBeVisible()
-  await page.getByRole('button', { name: '5 Collect the tiles', exact: true }).click()
+  await page.getByRole('button', { name: '5 Collect the terms', exact: true }).click()
   await expect(page.getByTestId('carnot-projection-pair').nth(2)).toHaveAttribute('aria-pressed', 'true')
   await expect(page.locator('[data-testid="carnot-area-tile"][opacity="1"]')).toHaveCount(2)
+  await page.getByText('Geometric tile view', { exact: true }).click()
   await page.getByRole('button', { name: 'All', exact: true }).click()
   await page.getByTestId('carnot-area-tile').first().focus()
   await expect(page.getByTestId('carnot-proof-distance').first().locator('line')).toHaveAttribute('stroke-width', '4')
@@ -330,7 +405,7 @@ test('handles obtuse and right examples without hiding negative or zero contribu
   await expect(page.locator('[data-testid="carnot-proof-area"][data-signed="negative"]')).toHaveCount(1)
   await page.getByRole('button', { name: 'Incircle', exact: true }).click()
   await expect(page.locator('[data-testid="carnot-proof-area"][data-signed="negative"]')).toHaveCount(0)
-  await page.getByRole('button', { name: '6 Cancel the perimeter' }).click()
+  await page.getByRole('button', { name: '5 Collect the terms' }).click()
   await expect(page.getByTestId('carnot-negative-tile')).toHaveCount(3)
   await expectActualTotals(page)
   const segments = await page.getByRole('tabpanel', { name: 'Carnot proof' }).getByTestId('distance-sum-segment').evaluateAll((nodes) => nodes.map((node) => {
@@ -351,7 +426,7 @@ test('handles obtuse and right examples without hiding negative or zero contribu
 
 test('recalculates live totals for every seed and supports dragging, keyboard movement, and cancellation', async ({ page }) => {
   await openProof(page)
-  await page.getByRole('button', { name: '6 Cancel the perimeter' }).click()
+  await page.getByRole('button', { name: '5 Collect the terms' }).click()
   for (let seed = 1; seed <= 25; seed++) {
     await page.getByRole('slider', { name: 'Proof triangle seed' }).fill(String(seed))
     await expectActualTotals(page)
@@ -384,13 +459,13 @@ test('recalculates live totals for every seed and supports dragging, keyboard mo
   expect(await pointsIn(page)).toEqual(original)
 })
 
-test('always shows O in steps 1 and 2 and follows the circumcircle in steps 3 through 6', async ({ page }) => {
+test('always shows O in steps 1 and 2 and follows the circumcircle in steps 3 through 5', async ({ page }) => {
   await openProof(page)
   const center = page.getByTestId('carnot-proof-circumcenter')
   const circle = page.getByRole('button', { name: 'Circumcircle', exact: true })
   for (const [index, title] of [
     '1 Halve the central angle', '2 Read the cosine', '3 Project a side',
-    '4 Measure area twice', '5 Collect the tiles', '6 Cancel the perimeter',
+    '4 Measure area twice', '5 Collect the terms',
   ].entries()) {
     await page.getByRole('button', { name: title, exact: true }).click()
     await expect(center.locator('circle')).toBeVisible()
@@ -414,7 +489,7 @@ test('keeps the proof and its controls usable at phone widths', async ({ page },
   await page.setViewportSize({ width: 390, height: 844 })
   await openProof(page)
   await page.getByRole('button', { name: 'Obtuse', exact: true }).click()
-  await page.getByRole('button', { name: '6 Cancel the perimeter' }).click()
+  await page.getByRole('button', { name: '5 Collect the terms' }).click()
   await expectActualTotals(page)
   for (const [label, selector] of [
     ['Circumcircle', '.carnot-proof-diagram .circumcircle'],

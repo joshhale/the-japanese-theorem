@@ -29,8 +29,22 @@
 .carnot-projection-identity::before { content: ''; display: inline-block; width: 8px; height: 8px; margin-right: 8px; border-radius: 50%; background: currentColor; }
 .carnot-projection-identity[aria-pressed='true'] { border-color: currentColor; background: #ffffff70; }
 .carnot-revisit-projection { margin-top: 16px; }
-.carnot-proof-conclusion { border-top: 1px solid #d5ddd0; margin: 25px -24px -24px; padding: 24px; background: #edf1e8; }
-.carnot-cancelled { text-decoration: line-through; text-decoration-color: #b65341; color: #8d987f; }
+.carnot-proof-conclusion { border-top: 1px solid #d5ddd0; margin: 25px -24px 0; padding: 24px; background: #edf1e8; }
+.carnot-expansion { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px 10px; max-width: 760px; margin: 22px auto 10px; }
+.carnot-expansion-cell { display: grid; grid-template-columns: 20px minmax(0, 1fr); align-items: center; gap: 8px; }
+.carnot-expansion-plus { text-align: center; font: 23px Georgia, serif; color: #506b60; }
+.carnot-expanded-term { padding: 12px 8px; border: 1px solid #dce2d5; border-radius: 6px; background: #ffffff70; font: 23px/1.5 Georgia, serif; cursor: pointer; min-width: 0; }
+.carnot-expanded-term:focus-visible { outline: 2px solid currentColor; outline-offset: 3px; }
+.carnot-show-all { display: block; margin: 0 auto 24px; }
+.carnot-collection { max-width: 900px; margin: 18px auto; padding: 16px; border: 1px solid #dce2d5; border-radius: 6px; }
+.carnot-collection h3, .carnot-pairs-heading { font-size: 12px; font-weight: 600; margin: 0 0 12px; }
+.carnot-pairs-heading { text-align: center; margin-top: 24px; color: #506b60; }
+.carnot-pair-identities { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; max-width: 900px; margin: 12px auto; }
+.carnot-pair-identities .carnot-projection-identity { margin: 0; padding: 12px 8px; border-color: #dce2d5; min-width: 0; }
+.carnot-expanded-term[data-highlighted='true'], .carnot-collection[data-highlighted='true'], .carnot-projection-identity[data-highlighted='true'] { border-color: currentColor; box-shadow: 0 0 0 1px currentColor; background: #ffffffa0; }
+.carnot-expanded-term[data-dimmed='true'], .carnot-collection[data-dimmed='true'], .carnot-projection-identity[data-dimmed='true'] { opacity: 0.3; }
+.carnot-supporting-tiles { margin-top: 20px; border-top: 1px solid #dce2d5; padding-top: 16px; }
+.carnot-supporting-tiles summary { cursor: pointer; color: #506b60; font-size: 12px; }
 .carnot-angle-reasoning { max-width: 850px; margin: 20px auto; padding-left: 22px; color: #6d7b67; font-size: 13px; line-height: 1.9; }
 .carnot-angle-reasoning li { padding-left: 4px; margin-bottom: 10px; }
 .carnot-fraction { display: inline-flex; flex-direction: column; vertical-align: middle; text-align: center; font-size: 0.9em; line-height: 1.35; margin-inline: 3px; }
@@ -49,6 +63,10 @@
   .carnot-main-equation { font-size: 21px; gap: 3px; }
   .carnot-numeric-equation { font-size: 18px; }
   .carnot-area-explanations { grid-template-columns: 1fr; gap: 14px; }
-  .carnot-proof-conclusion { margin-inline: -18px; margin-bottom: -18px; padding: 18px; }
+  .carnot-proof-conclusion { margin-inline: -18px; padding: 18px; }
+  .carnot-expansion { column-gap: 6px; }
+  .carnot-expansion-cell { grid-template-columns: 12px minmax(0, 1fr); gap: 2px; }
+  .carnot-expanded-term { font-size: 19px; padding: 10px 2px; }
+  .carnot-pair-identities { grid-template-columns: 1fr; }
   .carnot-proof-source { padding-inline: 18px; }
 }
