@@ -356,6 +356,30 @@ test('recalculates live totals for every seed and supports dragging, keyboard mo
   expect(await pointsIn(page)).toEqual(original)
 })
 
+test('always shows O in steps 1 and 2 and follows the circumcircle in steps 3 through 6', async ({ page }) => {
+  await openProof(page)
+  const center = page.getByTestId('carnot-proof-circumcenter')
+  const circle = page.getByRole('button', { name: 'Circumcircle', exact: true })
+  for (const [index, title] of [
+    '1 Halve the central angle', '2 Read the cosine', '3 Project a side',
+    '4 Measure area twice', '5 Collect the tiles', '6 Cancel the perimeter',
+  ].entries()) {
+    await page.getByRole('button', { name: title, exact: true }).click()
+    await expect(center.locator('circle')).toBeVisible()
+    await expect(center.locator('text')).toHaveText('O')
+    await circle.click()
+    await expect(page.locator('.carnot-proof-diagram .circumcircle')).toHaveCount(0)
+    await expect(center).toHaveCount(index < 2 ? 1 : 0)
+    await circle.click()
+    await expect(center).toBeVisible()
+  }
+  await circle.click()
+  await page.getByRole('button', { name: '2 Read the cosine', exact: true }).click()
+  await expect(center).toBeVisible()
+  await page.getByRole('button', { name: '3 Project a side', exact: true }).click()
+  await expect(center).toHaveCount(0)
+})
+
 test('keeps the proof and its controls usable at phone widths', async ({ page }, testInfo) => {
   const errors: string[] = []
   page.on('pageerror', (error) => errors.push(error.message))

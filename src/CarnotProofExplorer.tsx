@@ -226,7 +226,9 @@ function TrianglePicture({ points, proof, step, focus, center, layers, activeTil
       return <g key={index} data-testid="carnot-inradius-height"><line x1={inner.x} y1={inner.y} x2={touch.x} y2={touch.y} stroke="#bd6b4d" strokeWidth="2" />
         <text x={(inner.x + touch.x) / 2 + 9} y={(inner.y + touch.y) / 2 - 6} fill="#bd6b4d">r</text></g>
     })}
-    <circle cx={o.x} cy={o.y} r="3" fill="#487d82" /><text x={o.x + 10} y={o.y - 12} fill="#487d82">O</text>
+    {(step <= STEP.cosine || layers.circle) && <g data-testid="carnot-proof-circumcenter">
+      <circle cx={o.x} cy={o.y} r="3" fill="#487d82" /><text x={o.x + 10} y={o.y - 12} fill="#487d82">O</text>
+    </g>}
     {points.map((point, index) => {
       const p = screen(point)
       return <g key={index} role="button" className="vertex" tabIndex={0} aria-label={`Carnot proof vertex ${'ABC'[index]}`}
