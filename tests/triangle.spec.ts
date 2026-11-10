@@ -5,7 +5,7 @@ import type { TrianglePoints } from '../src/triangleGeometry'
 
 async function openTriangle(page: Page) {
   await page.goto('/')
-  await page.getByRole('tab', { name: 'The incircle' }).click()
+  await page.getByRole('tab', { name: "Carnot's Theorem" }).click()
 }
 
 async function trianglePoints(page: Page): Promise<TrianglePoints> {
@@ -60,16 +60,16 @@ test('switches tabs accessibly and preserves independent construction states', a
   await page.goto('/')
   await page.getByRole('slider', { name: 'Fan vertex', exact: true }).fill('4')
   const originalSum = await page.getByTestId('radius-sum').textContent()
-  const firstTab = page.getByRole('tab', { name: 'The invariant' })
+  const firstTab = page.getByRole('tab', { name: 'Japanese Theorem' })
   await firstTab.focus()
   await firstTab.press('ArrowRight')
-  await expect(page.getByRole('tabpanel', { name: 'The incircle' })).toBeVisible()
+  await expect(page.getByRole('tabpanel', { name: "Carnot's Theorem" })).toBeVisible()
   await page.getByRole('slider', { name: 'Triangle seed' }).fill('12')
   await page.getByRole('button', { name: 'Angle bisectors', exact: true }).click()
-  await page.getByRole('tab', { name: 'The invariant' }).click()
+  await page.getByRole('tab', { name: 'Japanese Theorem' }).click()
   await expect(page.getByTestId('radius-sum')).toHaveText(originalSum!)
   await expect(page.getByRole('slider', { name: 'Fan vertex', exact: true })).toHaveValue('4')
-  await page.getByRole('tab', { name: 'The incircle' }).click()
+  await page.getByRole('tab', { name: "Carnot's Theorem" }).click()
   await expect(page.getByRole('slider', { name: 'Triangle seed' })).toHaveValue('12')
   await expect(page.getByTestId('angle-bisector')).toHaveCount(3)
 })

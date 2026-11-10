@@ -1,0 +1,76 @@
+.quadrilateral-diagrams { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); margin-top: 20px; }
+.quadrilateral-diagrams.single { grid-template-columns: minmax(0, 1fr); max-width: 650px; margin-inline: auto; }
+.proof-diagram-card + .proof-diagram-card { border-left: 1px solid var(--border); }
+.proof-diagram-card h2 { font-size: 12px; font-weight: 600; margin: 0; padding: 10px 20px; }
+.proof-diagram-card h2 span { display: block; font-size: 10px; font-weight: 400; color: var(--muted); margin-top: 7px; }
+.proof-diagram text { font-family: Georgia, serif; font-size: 21px; paint-order: stroke; stroke: #fdfcf8; stroke-width: 3px; stroke-linejoin: round; }
+.proof-diagram .vertex-label { font-size: 21px; }
+.proof-diagonal { stroke: #b66b4b; stroke-width: 2; stroke-dasharray: 6 5; }
+.proof-distance { transition: opacity 120ms; }
+.proof-diagonal-distances.cancelled > g:not(.proof-cancel-mark) { opacity: 0.35; }
+.proof-live-sum { display: flex; justify-content: center; align-items: baseline; flex-wrap: wrap; gap: 8px; padding: 16px 10px 20px; font-family: Georgia, serif; font-size: 19px; font-variant-numeric: tabular-nums; }
+.proof-live-sum output { font-size: 23px; color: #435b4c; }
+.controls.proof-controls { display: block; }
+.proof-steps { display: grid; gap: 6px; }
+.proof-steps button { display: flex; align-items: center; gap: 10px; padding: 10px; background: transparent; border: 1px solid var(--border); border-radius: 5px; text-align: left; color: var(--muted); cursor: pointer; font-size: 12px; }
+.proof-steps button span { display: grid; place-items: center; width: 21px; height: 21px; border-radius: 50%; background: #e9ece3; font-size: 10px; }
+.proof-steps button[aria-pressed='true'] { background: #edf1e8; border-color: #9fb29c; color: #365b48; }
+.proof-steps button[aria-pressed='true'] span { background: #54766e; color: white; }
+.proof-step-description { font-size: 12px; line-height: 1.7; color: #687365; min-height: 82px; margin: 14px 0 20px; }
+.proof-view { display: flex; gap: 20px; margin: 0 0 23px; padding: 0; border: 0; font-size: 12px; }
+.proof-view legend { font-weight: 550; margin-bottom: 12px; }
+.proof-view label { display: flex; align-items: center; gap: 5px; cursor: pointer; }
+.proof-view input { accent-color: #54766e; }
+.proof-layer-controls { display: grid; gap: 7px; }
+.proof-layer-controls .circle-toggle { padding: 10px 12px; margin: 0; }
+.proof-keyboard-hint { font-size: 10px; line-height: 1.7; color: var(--muted); margin: 17px 0 7px; }
+.proof-algebra { border: 1px solid #d5ddd0; border-radius: 9px; background: #f5f6ef; margin: 24px 0 30px; overflow: hidden; }
+.proof-algebra-heading { display: flex; justify-content: space-between; gap: 12px; align-items: center; padding: 20px 24px; border-bottom: 1px solid #dce2d5; }
+.proof-algebra-heading h2 { margin: 0; font-size: 15px; font-weight: 550; }
+.proof-equation-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.proof-equation-card { padding: 20px 24px; min-width: 0; }
+.proof-equation-card + .proof-equation-card { border-left: 1px solid #dce2d5; }
+.proof-equation-card h3 { margin: 0 0 18px; font-size: 10px; color: #768370; text-transform: uppercase; letter-spacing: 1px; }
+.proof-equation { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px; font: 20px/1.8 Georgia, serif; margin: 8px 0; }
+.proof-radius { white-space: nowrap; font-style: italic; }
+.proof-expression, .proof-expression > span { display: inline-flex; align-items: baseline; white-space: nowrap; }
+.proof-expression { flex-wrap: wrap; }
+.proof-term { font: italic 20px Georgia, serif; padding: 3px 2px; border: 0; border-radius: 3px; background: transparent; cursor: pointer; white-space: nowrap; }
+.proof-term:hover, .proof-term:focus-visible { background: #ffffffb0; outline: 1px solid currentColor; }
+.proof-term.cancelled { text-decoration: line-through; text-decoration-color: #b65341; text-decoration-thickness: 2px; opacity: 0.55; }
+.proof-operator { color: #8b9480; padding: 0 3px; }
+.proof-triangle-name { font: 10px system-ui, sans-serif; color: var(--muted); min-width: 30px; }
+.proof-cancellation { color: #9d7157; }
+.proof-cancellation strong { font-size: 15px; font-weight: 400; color: #54766e; margin-left: 7px; }
+.proof-diagonal-readout { margin-top: 16px; color: #9a6d50; font: 13px Georgia, serif; font-variant-numeric: tabular-nums; }
+.proof-diagonal-readout span { display: block; margin-top: 7px; font: 10px/1.7 system-ui, sans-serif; color: #7d8275; }
+.proof-sign-note { font-size: 11px; line-height: 1.7; color: #74816d; padding: 0 24px 17px; margin: 0; }
+.proof-conclusion { border-top: 1px solid #d5ddd0; padding: 24px; background: #edf1e8; }
+.proof-conclusion-equation { display: flex; flex-wrap: wrap; justify-content: center; align-items: baseline; gap: 9px 16px; font: 22px/1.7 Georgia, serif; }
+.proof-conclusion-equation > span:first-child, .proof-conclusion-equation > span:last-child { white-space: nowrap; }
+.proof-final-values { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; margin: 16px 0 0; font: 23px Georgia, serif; font-variant-numeric: tabular-nums; color: #436348; }
+.proof-sum-bars { display: block; width: 100%; max-width: 730px; margin: 5px auto 0; overflow: visible; }
+.proof-sum-bars text { font: italic 17px Georgia, serif; text-anchor: middle; }
+.proof-conclusion > p { font-size: 10px; line-height: 1.7; color: #74816d; margin: 5px 0 0; text-align: center; }
+@media (max-width: 1050px) and (min-width: 741px) {
+  .quadrilateral-diagrams { grid-template-columns: 1fr; }
+  .proof-diagram-card + .proof-diagram-card { border-left: 0; border-top: 1px solid var(--border); padding-top: 14px; }
+  .proof-equation { font-size: 18px; }
+}
+@media (max-width: 740px) {
+  .tabs { gap: 16px; }
+  .tab { flex: 1; text-align: left; line-height: 1.5; }
+  .tab > span:first-child { display: block; }
+  .quadrilateral-diagrams { grid-template-columns: 1fr; }
+  .proof-diagram-card + .proof-diagram-card { border-left: 0; border-top: 1px solid var(--border); padding-top: 14px; }
+  .proof-algebra-heading, .proof-equation-card, .proof-conclusion { padding: 18px; }
+  .proof-algebra-heading { align-items: start; }
+  .proof-algebra-heading h2 { font-size: 13px; }
+  .proof-equation-grid { grid-template-columns: 1fr; }
+  .proof-equation-card + .proof-equation-card { border-left: 0; border-top: 1px solid #dce2d5; }
+  .proof-equation { font-size: 19px; }
+  .proof-sign-note { padding-inline: 18px; }
+  .proof-conclusion-equation { font-size: 20px; gap: 5px 10px; }
+  .proof-conclusion-equation > span:nth-child(3) { flex-basis: 100%; text-align: center; }
+  .proof-final-values { font-size: 18px; gap: 7px; }
+}

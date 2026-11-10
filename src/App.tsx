@@ -6,6 +6,7 @@ import {
 } from './geometry'
 import type { Edge, Point } from './geometry'
 import TriangleExplorer from './TriangleExplorer'
+import QuadrilateralExplorer from './QuadrilateralExplorer'
 import './App.css'
 
 const COLORS = ['#d47352', '#487d82', '#9c8644', '#8476a5', '#64815c', '#af6384']
@@ -314,9 +315,10 @@ function PolygonExplorer() {
 function App() {
   const [activeTab, setActiveTab] = useState(0)
   const tabRefs = useRef<(HTMLButtonElement | null)[]>([])
+  const tabs = ['Japanese Theorem', "Carnot's Theorem", 'Quadrilateral proof']
   return <div className="app-shell"><main>
     <nav className="tabs" role="tablist" aria-label="Explorations">
-      {['The invariant', 'The incircle'].map((label, index) => (
+      {tabs.map((label, index) => (
         <button key={label} ref={(node) => { tabRefs.current[index] = node }}
           id={`tab-${index}`} role="tab" aria-selected={activeTab === index} aria-controls={`panel-${index}`}
           tabIndex={activeTab === index ? 0 : -1} className={`tab${activeTab === index ? ' active' : ''}`}
@@ -324,7 +326,8 @@ function App() {
           onKeyDown={(event) => {
             if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return
             event.preventDefault()
-            const next = event.key === 'Home' ? 0 : event.key === 'End' ? 1 : 1 - index
+            const next = event.key === 'Home' ? 0 : event.key === 'End' ? tabs.length - 1
+              : (index + (event.key === 'ArrowRight' ? 1 : -1) + tabs.length) % tabs.length
             setActiveTab(next)
             tabRefs.current[next]?.focus()
           }}><span>{String(index + 1).padStart(2, '0')}</span>{label}</button>
@@ -332,6 +335,7 @@ function App() {
     </nav>
     <section id="panel-0" role="tabpanel" aria-labelledby="tab-0" hidden={activeTab !== 0}><PolygonExplorer /></section>
     <section id="panel-1" role="tabpanel" aria-labelledby="tab-1" hidden={activeTab !== 1}><TriangleExplorer /></section>
+    <section id="panel-2" role="tabpanel" aria-labelledby="tab-2" hidden={activeTab !== 2}><QuadrilateralExplorer /></section>
   </main></div>
 }
 

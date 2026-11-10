@@ -79,7 +79,7 @@ test('clears previews for invalid targets, existing edges, cancellation, and rel
   const from = await vertexPosition(page, 'A')
   const boundaryEnd = await vertexPosition(page, 'B')
   const end = await vertexPosition(page, 'G')
-  const svg = page.locator('.geometry')
+  const svg = page.getByRole('tabpanel', { name: 'Japanese Theorem' }).locator('.geometry')
   const bounds = await svg.boundingBox()
   if (!bounds) throw new Error('Diagram not visible')
   const center = { x: bounds.x + bounds.width / 2, y: bounds.y + bounds.height / 2 }

@@ -13,7 +13,7 @@ npm ci
 npm run dev
 ```
 
-## Explore
+## Japanese Theorem tab
 
 - Choose 3 to 40 vertices and one of 25 deterministic seeds for vertex placement
   and triangulation.
@@ -45,11 +45,11 @@ Changing the vertex placement changes the polygon and can change the total.
 Changing only its triangulation preserves the total. Seeds need not give unique
 triangulations, especially for polygons with few vertices.
 
-## The incircle tab
+## Carnot's Theorem tab
 
 The second tab starts with three seeded points, not a prescribed circle. Drag
 vertices A, B, and C freely, or focus a vertex and use arrow keys (Shift for
-larger steps). Both tabs retain their state when switching.
+larger steps). All tabs retain their state when switching.
 
 Toggle the circumcircle, incircle, perpendicular side bisectors, angle bisectors,
 centers, radius segments, and Carnot distances independently. Perpendicular
@@ -71,6 +71,31 @@ radius readouts rather than invalid circles. Fit circles adjusts the square
 view without moving the vertices or changing any lengths. Reset triangle
 restores the selected seed and the original view.
 
+## Quadrilateral proof tab
+
+Compare diagonals AC and BD of the same cyclic quadrilateral, side by side or
+individually. Choose one of 25 seeds, or drag a vertex around the circumcircle.
+Vertices cannot cross their neighbors. Arrow keys move a focused vertex;
+Shift moves faster, and Escape restores a cancelled drag.
+
+The four proof steps apply Carnot to each triangle, add each pair of equations,
+cancel the opposite signed diagonal contributions, and compare what remains:
+
+```text
+2R + r_ABC + r_ACD = d_AB + d_AD + d_BC + d_CD
+2R + r_ABD + r_BCD = d_AB + d_AD + d_BC + d_CD
+```
+
+Boundary distances are signed toward the quadrilateral's interior, not taken as
+absolute lengths. This remains valid when the circumcenter lies outside.
+Matching colors link terms to distances in both diagrams; hover or focus a term
+to highlight it. Incircles, boundary distances, diagonal contributions, and the
+circumradius segment can be toggled independently.
+
+The final step compares both actual inradius sums and the independently computed
+boundary-distance sum minus 2R, with radius segments on a common scale. None of
+these totals is substituted for another. All lengths use R = 1.
+
 ## Validate
 
 ```sh
@@ -87,3 +112,5 @@ live totals, drag and keyboard interactions, constraint replacement, resets,
 visibility, limits, mobile layout, and triangle-layer controls. Free-triangle
 tests cover circle construction, bisectors, degeneracy, fitting, and the signed
 Carnot identity for acute, right, and obtuse triangles in both orientations.
+Quadrilateral tests cover signed diagonal cancellation, external circumcenters,
+cyclic vertex movement, proof steps, linked highlighting, and independent totals.
