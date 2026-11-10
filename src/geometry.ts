@@ -25,6 +25,21 @@ export function createVertices(count: number, seed: number): Point[] {
   })
 }
 
+export function moveCyclicVertex(points: readonly Point[], index: number, angle: number): Point[] {
+  const current = Math.atan2(points[index].y, points[index].x)
+  const previous = points[(index + points.length - 1) % points.length]
+  const next = points[(index + 1) % points.length]
+  const turn = Math.PI * 2
+  const positive = (value: number) => (value % turn + turn) % turn
+  const lower = current - positive(current - Math.atan2(previous.y, previous.x)) + 0.06
+  const upper = current + positive(Math.atan2(next.y, next.x) - current) - 0.06
+  const desired = current + Math.atan2(Math.sin(angle - current), Math.cos(angle - current))
+  const constrained = Math.max(lower, Math.min(upper, desired))
+  const result = [...points]
+  result[index] = { x: Math.cos(constrained), y: Math.sin(constrained) }
+  return result
+}
+
 export function edgeKey([a, b]: Edge): string {
   return a < b ? `${a}-${b}` : `${b}-${a}`
 }

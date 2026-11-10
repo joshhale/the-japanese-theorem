@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useId, useRef, useState } from 'react'
 import type { KeyboardEvent, PointerEvent } from 'react'
 import { analyzeTriangle, createFreeTriangle, fitTriangleCircles, INITIAL_VIEW, LENGTH_UNIT } from './triangleGeometry'
 import type { TrianglePoints } from './triangleGeometry'
@@ -26,7 +26,7 @@ const LAYERS: { key: keyof typeof INITIAL_LAYERS; label: string; color: string }
   { key: 'carnot', label: 'Carnot distances', color: '#8476a5' },
 ]
 const distance = (a: Point, b: Point) => Math.hypot(a.x - b.x, a.y - b.y)
-const formatLength = (length: number) => (Math.abs(length) < 1e-8 ? 0 : length / LENGTH_UNIT).toFixed(6)
+const formatLength = (length: number, unit = LENGTH_UNIT) => (Math.abs(length) < 1e-8 ? 0 : length / unit).toFixed(6)
 
 function angleMarker(center: Point, from: Point, to: Point, radius: number, tickSize: number) {
   const start = Math.atan2(from.y - center.y, from.x - center.x)
@@ -41,9 +41,10 @@ function angleMarker(center: Point, from: Point, to: Point, radius: number, tick
   }
 }
 
-function CarnotSegments({ outerRadius, innerRadius, distances }: {
-  outerRadius: number; innerRadius: number; distances: readonly number[]
+export function CarnotSegments({ outerRadius, innerRadius, distances, lengthUnit = LENGTH_UNIT }: {
+  outerRadius: number; innerRadius: number; distances: readonly number[]; lengthUnit?: number
 }) {
+  const markerPrefix = useId()
   const radiusEnds = [0, outerRadius, outerRadius + innerRadius]
   const distanceEnds = [0]
   for (const value of distances) distanceEnds.push(distanceEnds[distanceEnds.length - 1] + value)
@@ -62,7 +63,7 @@ function CarnotSegments({ outerRadius, innerRadius, distances }: {
       <desc>Both constructions start at zero. Radius segments point right. Distance segments join head-to-tail, using separate tracks when a negative segment points left. Vertical connectors do not contribute length.</desc>
       <defs>
         {colors.map((color, index) => (
-          <marker key={index} id={`carnot-sum-arrow-${index}`} viewBox="0 -4 8 8" refX="7" refY="0"
+          <marker key={index} id={`${markerPrefix}-carnot-sum-arrow-${index}`} viewBox="0 -4 8 8" refX="7" refY="0"
             markerWidth="8" markerHeight="8" markerUnits="userSpaceOnUse" orient="auto">
             <path d="M0,-3 L7,0 L0,3" fill="none" stroke={color} strokeWidth="1.7" />
           </marker>
@@ -74,9 +75,9 @@ function CarnotSegments({ outerRadius, innerRadius, distances }: {
       {[outerRadius, innerRadius].map((value, index) => (
         <g key={index} className="sum-segment" style={{ color: colors[index] }}>
           <line data-testid="radius-sum-segment" x1={x(radiusEnds[index])} y1="40" x2={x(radiusEnds[index + 1])} y2="40"
-            markerEnd={`url(#carnot-sum-arrow-${index})`} />
+            markerEnd={`url(#${markerPrefix}-carnot-sum-arrow-${index})`} />
           <text x={x((radiusEnds[index] + radiusEnds[index + 1]) / 2)} y="27">{index === 0 ? 'R' : 'r'}</text>
-          <title>{`${index === 0 ? 'R' : 'r'} = ${formatLength(value)}`}</title>
+          <title>{`${index === 0 ? 'R' : 'r'} = ${formatLength(value, lengthUnit)}`}</title>
         </g>
       ))}
       {distances.map((value, index) => (
@@ -85,11 +86,11 @@ function CarnotSegments({ outerRadius, innerRadius, distances }: {
             x1={x(distanceEnds[index + 1])} y1={row(index)} x2={x(distanceEnds[index + 1])} y2={row(index + 1)} />}
           <line data-testid="distance-sum-segment" x1={x(distanceEnds[index])} y1={row(index)}
             x2={x(distanceEnds[index + 1])} y2={row(index)}
-            markerEnd={Math.abs(value) > 1e-8 ? `url(#carnot-sum-arrow-${index + 2})` : undefined} />
+            markerEnd={Math.abs(value) > 1e-8 ? `url(#${markerPrefix}-carnot-sum-arrow-${index + 2})` : undefined} />
           <text x={x((distanceEnds[index] + distanceEnds[index + 1]) / 2)} y={row(index) - 13}>
             d<tspan baselineShift="sub" fontSize="10">{'abc'[index]}</tspan>{value < -1e-8 ? ' < 0' : Math.abs(value) <= 1e-8 ? ' = 0' : ''}
           </text>
-          <title>{`d${'abc'[index]} = ${formatLength(value)}${value < -1e-8 ? ', points left' : ''}`}</title>
+          <title>{`d${'abc'[index]} = ${formatLength(value, lengthUnit)}${value < -1e-8 ? ', points left' : ''}`}</title>
         </g>
       ))}
       <circle className="sum-endpoint" cx={x(0)} cy="40" r="3" />

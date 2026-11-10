@@ -1,0 +1,43 @@
+.carnot-proof-diagram text { font: 17px Georgia, serif; paint-order: stroke; stroke: #fdfcf8; stroke-width: 3px; stroke-linejoin: round; }
+.carnot-proof-diagram .vertex-label { font-size: 17px; }
+.carnot-proof-diagram { display: block; max-width: 680px; margin: auto; }
+.carnot-presets, .carnot-ledger-controls { display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 20px; }
+.carnot-presets button, .carnot-ledger-controls button { border: 1px solid var(--border); border-radius: 5px; background: transparent; padding: 8px 11px; font-size: 11px; color: var(--muted); cursor: pointer; }
+.carnot-presets button[aria-pressed='true'], .carnot-ledger-controls button[aria-pressed='true'] { background: #e6eddf; border-color: #9fb29c; color: #42644c; }
+.carnot-proof-algebra { background: #f6f7f0; }
+.carnot-proof-explanation { padding: 24px; }
+.carnot-proof-explanation p { color: #6d7b67; font-size: 12px; line-height: 1.8; max-width: 850px; margin: 14px auto; }
+.carnot-main-equation { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: center; gap: 5px; text-align: center; font: 25px/1.8 Georgia, serif; margin: 10px 0 18px; }
+.carnot-numeric-equation { text-align: center; color: #4c6c54; font: 22px/1.6 Georgia, serif; font-variant-numeric: tabular-nums; margin: 20px 0 10px; }
+.carnot-r-color { color: #bd6b4d; }
+.carnot-R-color { color: #487d82; }
+.carnot-area-explanations { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 28px; margin: 24px auto; max-width: 900px; }
+.carnot-area-explanations > div { border: 1px solid #dce2d5; border-radius: 6px; padding: 18px; min-width: 0; }
+.carnot-area-explanations h3 { font-size: 12px; margin: 0 0 12px; font-weight: 600; }
+.carnot-area-explanations output { display: block; font: 22px Georgia, serif; font-variant-numeric: tabular-nums; margin-top: 15px; }
+.carnot-small-equation { display: flex; flex-wrap: wrap; gap: 3px; font: 19px/1.7 Georgia, serif; }
+.carnot-projection-chart { display: block; width: 100%; max-width: 720px; margin: 26px auto 0; overflow: visible; }
+.carnot-projection-chart text { font: italic 17px Georgia, serif; text-anchor: middle; }
+.carnot-ledger-controls { justify-content: center; margin: 24px 0 12px; }
+.carnot-area-ledger { display: block; width: 100%; max-width: 760px; margin: 0 auto; overflow: visible; }
+.carnot-area-ledger text { font: italic 19px Georgia, serif; fill: #506b60; pointer-events: none; }
+.carnot-area-ledger .carnot-tile-perimeter { text-anchor: middle; font-size: 17px; }
+.carnot-area-ledger g[role='button'] { cursor: pointer; outline: none; transition: opacity 120ms; }
+.carnot-area-ledger g[role='button']:hover > rect:first-of-type, .carnot-area-ledger g[role='button']:focus-visible > rect:first-of-type { stroke-width: 3px; }
+.carnot-ledger-hint { font-size: 11px !important; text-align: center; }
+.carnot-projection-identity { display: block; padding: 4px 8px; margin: 3px 0; border: 1px solid transparent; border-radius: 4px; background: transparent; color: #487d82; font: 19px/1.6 Georgia, serif; cursor: pointer; text-align: left; }
+.carnot-projection-identity[aria-pressed='true'] { border-color: #c3d3cc; background: #ffffff70; }
+.carnot-proof-conclusion { border-top: 1px solid #d5ddd0; margin: 25px -24px -24px; padding: 24px; background: #edf1e8; }
+.carnot-cancelled { text-decoration: line-through; text-decoration-color: #b65341; color: #8d987f; }
+.carnot-proof-conclusion .carnot-segment-comparison { max-width: 760px; margin-inline: auto; }
+.carnot-proof-conclusion > p { text-align: center; }
+.carnot-proof-source { padding: 15px 24px; border-top: 1px solid #dce2d5; font-size: 10px; line-height: 1.8; color: #829078; }
+.carnot-proof-source a { color: #597967; }
+@media (max-width: 740px) {
+  .carnot-proof-explanation { padding: 18px; }
+  .carnot-main-equation { font-size: 21px; gap: 3px; }
+  .carnot-numeric-equation { font-size: 18px; }
+  .carnot-area-explanations { grid-template-columns: 1fr; gap: 14px; }
+  .carnot-proof-conclusion { margin-inline: -18px; margin-bottom: -18px; padding: 18px; }
+  .carnot-proof-source { padding-inline: 18px; }
+}

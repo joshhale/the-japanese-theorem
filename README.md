@@ -99,6 +99,32 @@ The final step compares both actual inradius sums and the independently computed
 boundary-distance sum minus 2R, with radius segments on a common scale. None of
 these totals is substituted for another. All lengths use R = 1.
 
+## Carnot proof tab
+
+The fourth tab proves Carnot's theorem through signed projections and areas.
+It follows the elementary projection-and-area argument in
+[Alexander Bogomolny's Carnot's Theorem, Proof 1](https://www.cut-the-knot.org/proofs/carnot.shtml),
+with an original nine-tile visualization of the final addition.
+
+1. Project a radius to see `d_a = R cos A`, including an obtuse angle's
+   negative projection. Matching angle marks and a directed axis explain the sign.
+2. Project a side: `a = c cos B + b cos C`, hence `aR = c d_b + b d_c`.
+   Change the focus side to obtain all three identities.
+3. Measure the triangle's area using O and I as alternate centers:
+   `a d_a + b d_b + c d_c = 2 area = Pr`.
+4. Split three strips of width `P = a + b + c` into nine actual-area tiles.
+   The three diagonal tiles sum to `Pr`. The other six pair up through the
+   side-projection identities and sum to `PR`. Hatched tiles are subtracted.
+5. Divide `P(d_a + d_b + d_c) = P(r + R)` by the positive perimeter P.
+
+Choose 25 seeds or explicit acute, right, and obtuse examples. Drag vertices
+around the unit circle, or use arrow keys (Shift for larger movements). Escape
+cancels a drag. Incircle, circumcircle, signed distances, and construction lines
+can be toggled. Hover or focus a tile to find its base and height in the diagram.
+Tile widths and absolute heights share a true length scale; signs are preserved
+in all computations. The final segment comparison reuses the second tab's
+construction with independently calculated totals.
+
 ## Validate
 
 ```sh
@@ -117,3 +143,5 @@ tests cover circle construction, bisectors, degeneracy, fitting, and the signed
 Carnot identity for acute, right, and obtuse triangles in both orientations.
 Quadrilateral tests cover signed diagonal cancellation, external circumcenters,
 cyclic vertex movement, proof steps, linked highlighting, and independent totals.
+Carnot-proof tests verify every intermediate projection and area identity, signed
+tile dimensions, right and obtuse examples, movement, and four-tab navigation.

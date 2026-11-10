@@ -1,4 +1,4 @@
-import { createVertices, edgeKey, isBoundary } from './geometry'
+import { createVertices, edgeKey, isBoundary, moveCyclicVertex } from './geometry'
 import type { Edge, Point, Triangle } from './geometry'
 import { analyzeTriangle } from './triangleGeometry'
 
@@ -27,18 +27,8 @@ export function createQuadrilateral(seed: number): QuadrilateralPoints {
 }
 
 export function moveQuadrilateralVertex(points: QuadrilateralPoints, index: number, angle: number): QuadrilateralPoints {
-  const current = Math.atan2(points[index].y, points[index].x)
-  const previous = points[(index + 3) % 4]
-  const next = points[(index + 1) % 4]
-  const turn = Math.PI * 2
-  const positive = (value: number) => (value % turn + turn) % turn
-  const lower = current - positive(current - Math.atan2(previous.y, previous.x)) + 0.06
-  const upper = current + positive(Math.atan2(next.y, next.x) - current) - 0.06
-  const desired = current + Math.atan2(Math.sin(angle - current), Math.cos(angle - current))
-  const constrained = Math.max(lower, Math.min(upper, desired))
-  const result: [Point, Point, Point, Point] = [...points]
-  result[index] = { x: Math.cos(constrained), y: Math.sin(constrained) }
-  return result
+  const [a, b, c, d] = moveCyclicVertex(points, index, angle)
+  return [a, b, c, d]
 }
 
 // Vertices are in cyclic order on the unit circle.
