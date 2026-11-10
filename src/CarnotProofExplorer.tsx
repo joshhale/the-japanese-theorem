@@ -276,56 +276,12 @@ function ProjectionChart({ proof, focus }: { proof: Proof; focus: number }) {
   </svg>
 }
 
-function AreaLedger({ proof, highlight, onHover }: {
-  proof: Proof; highlight: 'r' | number | null
-  onHover: (tile: { row: number; col: number } | null) => void
-}) {
-  const totalHeight = proof.geometry.sides.reduce((sum, side) => sum + Math.abs(side.signedDistance), 0)
-  const scale = Math.min(480 / proof.perimeter, 240 / totalHeight)
-  const xs = [100]
-  for (const side of proof.geometry.sides) xs.push(xs[xs.length - 1] + side.length * scale)
-  const ys = [65]
-  for (const side of proof.geometry.sides) ys.push(ys[ys.length - 1] + Math.abs(side.signedDistance) * scale + 43)
-  return <svg className="carnot-area-ledger" viewBox={`0 0 640 ${ys[3] + 8}`} role="group" aria-label="Nine signed area tiles">
-    <defs><pattern id="carnot-tile-negative" width="7" height="7" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
-      <line x1="0" x2="0" y1="0" y2="7" stroke="#b65341" strokeWidth="2" />
-    </pattern></defs>
-    <text x={(xs[0] + xs[3]) / 2} y="18" className="carnot-tile-perimeter">a + b + c</text>
-    {proof.geometry.sides.map((_, col) => <text key={col} x={(xs[col] + xs[col + 1]) / 2} y="45" textAnchor="middle">{'abc'[col]}</text>)}
-    {proof.geometry.sides.map((side, row) => <text key={row} x="80" y={ys[row] + Math.abs(side.signedDistance) * scale / 2}
-      textAnchor="end" dominantBaseline="middle" style={{ fill: COLORS[row] }}>d<tspan baselineShift="sub" fontSize="12">{'abc'[row]}</tspan>{negative(side.signedDistance) ? ' < 0' : ''}</text>)}
-    {proof.tiles.map((tile) => {
-      const collection = termGroup(tile)
-      const color = collection === 'r' ? '#bd6b4d' : COLORS[collection]
-      const highlighted = highlight === null || collection === highlight
-      const height = Math.abs(tile.height) * scale
-      return <g key={`${tile.row}-${tile.col}`} role="button" tabIndex={0}
-        aria-label={`${'abc'[tile.col]} times d_${'abc'[tile.row]}: ${format(tile.area)}, ${tile.inner ? 'inradius' : 'circumradius'} piece`}
-        data-testid="carnot-area-tile" data-area={tile.area} data-inner={String(tile.inner)} opacity={highlighted ? 1 : 0.2}
-        onPointerEnter={() => onHover(tile)} onPointerLeave={() => onHover(null)}
-        onFocus={() => onHover(tile)} onBlur={() => onHover(null)}
-        onKeyDown={(event) => { if (['Enter', ' '].includes(event.key)) { event.preventDefault(); onHover(tile) } }}>
-        <title>{`${'abc'[tile.col]} × d_${'abc'[tile.row]} = ${format(tile.area)}${negative(tile.area) ? ' (subtract this area)' : ''}`}</title>
-        <rect x={xs[tile.col]} y={ys[tile.row]} width={tile.width * scale} height={height}
-          fill={color} fillOpacity="0.18" stroke={color} />
-        {negative(tile.area) && <rect data-testid="carnot-negative-tile" x={xs[tile.col]} y={ys[tile.row]}
-          width={tile.width * scale} height={height} fill="url(#carnot-tile-negative)" />}
-        {height > 22 && tile.width * scale > 48 && <text x={(xs[tile.col] + xs[tile.col + 1]) / 2}
-          y={ys[tile.row] + height / 2} dominantBaseline="middle" textAnchor="middle" style={{ fill: color }}>
-          {'abc'[tile.col]}d<tspan baselineShift="sub" fontSize="12">{'abc'[tile.row]}</tspan>
-        </text>}
-      </g>
-    })}
-  </svg>
-}
-
 export default function CarnotProofExplorer() {
   const [seed, setSeed] = useState(11)
   const [points, setPoints] = useState<TrianglePoints>(() => createCarnotTriangle(11))
   const [preset, setPreset] = useState<string | null>(null)
   const [step, setStep] = useState(STEP.angles)
   const [focus, setFocus] = useState(0)
-  const [group, setGroup] = useState<'All' | 'r pieces' | 'R pieces'>('All')
   const [activeTile, setActiveTile] = useState<{ row: number; col: number } | null>(null)
   const [layers, setLayers] = useState<Layers>({ circle: true, incircle: true, distances: true, construction: true })
   const proof = analyzeCarnotProof(points)
@@ -343,7 +299,7 @@ export default function CarnotProofExplorer() {
   const verified = Math.max(Math.abs(proof.innerArea - proof.inradiusArea), Math.abs(proof.outerArea - proof.circumradiusArea),
     Math.abs(proof.sumDistances - geometry.outer.radius - geometry.inner.radius)) < 1e-9
   const weighted = <span>a<D index={0} /> + b<D index={1} /> + c<D index={2} /></span>
-  const collection = activeTile ? termGroup(activeTile) : group === 'All' ? null : group === 'r pieces' ? 'r' : focus
+  const collection = activeTile ? termGroup(activeTile) : null
 
   function reset(nextSeed: number) {
     setSeed(nextSeed)
@@ -458,13 +414,13 @@ export default function CarnotProofExplorer() {
           <div className="carnot-main-equation" data-testid="carnot-expanded-product">
             <span>(a + b + c)</span><span>(<D index={0} /> + <D index={1} /> + <D index={2} />)</span>
           </div>
-          <p id="carnot-expansion-help">Expand the product. Hover or focus a term to see its group; tap or click to keep that group selected.</p>
+          <p id="carnot-expansion-help">Expand the product. Hover over a term to see its group.</p>
           <div className="carnot-expansion" role="group" aria-label="Nine-term expansion">
             {proof.tiles.map((tile, index) => {
               const termCollection = termGroup(tile)
               return <div key={`${tile.row}-${tile.col}`} className="carnot-expansion-cell">
                 <span className="carnot-expansion-plus">{index === 0 ? '=' : '+'}</span>
-                <button className="carnot-expanded-term" data-testid="carnot-expansion-term"
+                <span className="carnot-expanded-term" data-testid="carnot-expansion-term" role="math"
                   data-row={tile.row} data-col={tile.col} data-value={tile.area}
                   data-highlighted={collection === termCollection}
                   data-dimmed={collection !== null && collection !== termCollection}
@@ -472,19 +428,12 @@ export default function CarnotProofExplorer() {
                   aria-label={`${'abc'[tile.col]} times d_${'abc'[tile.row]}`}
                   aria-describedby="carnot-expansion-help"
                   onPointerEnter={() => setActiveTile(tile)}
-                  onPointerLeave={(event) => { if (document.activeElement !== event.currentTarget) setActiveTile(null) }}
-                  onFocus={() => setActiveTile(tile)} onBlur={() => setActiveTile(null)}
-                  onClick={() => {
-                    setGroup(termCollection === 'r' ? 'r pieces' : 'R pieces')
-                    if (termCollection !== 'r') setFocus(termCollection)
-                    setActiveTile(tile)
-                  }}>
+                  onPointerLeave={() => setActiveTile(null)}>
                   {'abc'[tile.col]}<D index={tile.row} />
-                </button>
+                </span>
               </div>
             })}
           </div>
-          <button className="text-button carnot-show-all" onClick={() => { setGroup('All'); setActiveTile(null) }}>Show all terms</button>
           <div className="carnot-collection carnot-r-color" data-testid="carnot-r-collection"
             data-highlighted={collection === 'r'} data-dimmed={collection !== null && collection !== 'r'}>
             <h3>Three diagonal terms, from Step 4</h3>
@@ -492,16 +441,12 @@ export default function CarnotProofExplorer() {
           </div>
           <h3 className="carnot-pairs-heading">Three pairs, from Step 3</h3>
           <div className="carnot-pair-identities">
-              {geometry.sides.map((_, index) => <button key={index} className="carnot-projection-identity"
-                data-testid="carnot-projection-pair" style={{ color: COLORS[index] }}
-                data-highlighted={collection === index} data-dimmed={collection !== null && collection !== index}
-                aria-pressed={group === 'R pieces' && focus === index}
-                onClick={() => { setFocus(index); setGroup('R pieces'); setActiveTile(null) }}>
-                {'abc'[(index + 2) % 3]}<D index={(index + 1) % 3} /> + {'abc'[(index + 1) % 3]}<D index={(index + 2) % 3} /> = {'abc'[index]}R
-              </button>)}
+            {geometry.sides.map((_, index) => <div key={index} className="carnot-projection-identity"
+              data-testid="carnot-projection-pair" style={{ color: COLORS[index] }}
+              data-highlighted={collection === index} data-dimmed={collection !== null && collection !== index}>
+              {'abc'[(index + 2) % 3]}<D index={(index + 1) % 3} /> + {'abc'[(index + 1) % 3]}<D index={(index + 2) % 3} /> = {'abc'[index]}R
+            </div>)}
           </div>
-          {group === 'R pieces' && <button className="text-button carnot-revisit-projection"
-            onClick={() => { setStep(STEP.side); setActiveTile(null) }}>Revisit Step 3 for side {'abc'[focus]}</button>}
           <p>Collect these four groups, then factor the three R terms:</p>
           <div className="carnot-main-equation" data-testid="carnot-collected-groups">
             = <span className="carnot-r-color">r(a + b + c)</span>
@@ -522,18 +467,9 @@ export default function CarnotProofExplorer() {
               distances={geometry.sides.map((item) => item.signedDistance)} lengthUnit={1} />
             <p>Both sides are calculated independently from the current triangle, at full precision.</p>
           </div>
-          <details className="carnot-supporting-tiles">
-            <summary>Geometric tile view</summary>
-            <div className="carnot-ledger-controls" role="group" aria-label="Highlight area pieces">
-              {(['All', 'r pieces', 'R pieces'] as const).map((value) => <button key={value} aria-pressed={group === value}
-                onClick={() => { setGroup(value); setActiveTile(null) }}>{value}</button>)}
-            </div>
-            <AreaLedger proof={proof} highlight={collection} onHover={setActiveTile} />
-            <p className="carnot-ledger-hint">Actual widths and signed areas share one scale; hatching means subtract. Hover or focus a tile to highlight its base and height.</p>
-          </details>
         </>}
       </div>
-      <div className="carnot-proof-source">Proof approach: <a href="https://www.cut-the-knot.org/proofs/carnot.shtml" target="_blank" rel="noreferrer">Alexander Bogomolny, Carnot’s Theorem, Proof 1</a>. The tile ledger visualizes the same projection-and-area argument.</div>
+      <div className="carnot-proof-source">Proof approach: <a href="https://www.cut-the-knot.org/proofs/carnot.shtml" target="_blank" rel="noreferrer">Alexander Bogomolny, Carnot’s Theorem, Proof 1</a>. The expansion uses the same projection-and-area argument.</div>
     </section>
   </>
 }

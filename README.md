@@ -122,21 +122,18 @@ with an interactive nine-term expansion of the final addition.
    Showing the incircle joins I to the vertices, giving three triangles of
    height r. Hiding it switches the dissection to O and signed distances.
 5. Expand `(a + b + c)(d_a + d_b + d_c)` into a 3-by-3 grid with addition signs.
-   Hover or focus any term to highlight its collection: the three diagonal
+   Hover over any term to highlight its collection: the three diagonal
    terms give `r(a + b + c)` by Step 4, while the other six pair up through
-   Step 3 to give `aR`, `bR`, and `cR`. Click or tap to retain a selection.
+   Step 3 to give `aR`, `bR`, and `cR`. Moving the pointer away restores all terms.
    Collect these into `(a + b + c)r + (a + b + c)R`, then factor out and
    cancel the positive perimeter to conclude `d_a + d_b + d_c = r + R`.
-   The geometric tile view remains available as supporting material;
-   hatched tiles are subtracted.
 
 Choose 25 seeds or explicit acute, right, and obtuse examples. Drag vertices
 around the unit circle, or use arrow keys (Shift for larger movements). Escape
 cancels a drag. Incircle, circumcircle, signed distances, and construction lines
-can be toggled. Hover or focus a tile to find its base and height in the diagram.
-Tile widths and absolute heights share a true length scale; signs are preserved
-in all computations. The final segment comparison reuses the second tab's
-construction with independently calculated totals.
+can be toggled. Hover over a term to find its base and height in the diagram.
+Signs are preserved in all computations. The final segment comparison reuses
+the second tab's construction with independently calculated totals.
 
 ## Validate
 
@@ -157,4 +154,4 @@ Carnot identity for acute, right, and obtuse triangles in both orientations.
 Quadrilateral tests cover signed diagonal cancellation, external circumcenters,
 cyclic vertex movement, proof steps, linked highlighting, and independent totals.
 Carnot-proof tests verify every intermediate projection and area identity, signed
-tile dimensions, right and obtuse examples, movement, and four-tab navigation.
+nine-term grouping, right and obtuse examples, movement, and four-tab navigation.

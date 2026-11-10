@@ -1,9 +1,9 @@
 .carnot-proof-diagram text { font: 17px Georgia, serif; paint-order: stroke; stroke: #fdfcf8; stroke-width: 3px; stroke-linejoin: round; }
 .carnot-proof-diagram .vertex-label { font-size: 17px; }
 .carnot-proof-diagram { display: block; max-width: 680px; margin: auto; }
-.carnot-presets, .carnot-ledger-controls { display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 20px; }
-.carnot-presets button, .carnot-ledger-controls button { border: 1px solid var(--border); border-radius: 5px; background: transparent; padding: 8px 11px; font-size: 11px; color: var(--muted); cursor: pointer; }
-.carnot-presets button[aria-pressed='true'], .carnot-ledger-controls button[aria-pressed='true'] { background: #e6eddf; border-color: #9fb29c; color: #42644c; }
+.carnot-presets { display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 20px; }
+.carnot-presets button { border: 1px solid var(--border); border-radius: 5px; background: transparent; padding: 8px 11px; font-size: 11px; color: var(--muted); cursor: pointer; }
+.carnot-presets button[aria-pressed='true'] { background: #e6eddf; border-color: #9fb29c; color: #42644c; }
 .carnot-proof-algebra { background: #f6f7f0; }
 .carnot-proof-explanation { padding: 24px; }
 .carnot-proof-explanation p { color: #6d7b67; font-size: 12px; line-height: 1.8; max-width: 850px; margin: 14px auto; }
@@ -18,24 +18,12 @@
 .carnot-small-equation { display: flex; flex-wrap: wrap; gap: 3px; font: 19px/1.7 Georgia, serif; }
 .carnot-projection-chart { display: block; width: 100%; max-width: 720px; margin: 26px auto 0; overflow: visible; }
 .carnot-projection-chart text { font: italic 17px Georgia, serif; text-anchor: middle; }
-.carnot-ledger-controls { justify-content: center; margin: 24px 0 12px; }
-.carnot-area-ledger { display: block; width: 100%; max-width: 760px; margin: 0 auto; overflow: visible; }
-.carnot-area-ledger text { font: italic 19px Georgia, serif; fill: #506b60; pointer-events: none; }
-.carnot-area-ledger .carnot-tile-perimeter { text-anchor: middle; font-size: 17px; }
-.carnot-area-ledger g[role='button'] { cursor: pointer; outline: none; transition: opacity 120ms; }
-.carnot-area-ledger g[role='button']:hover > rect:first-of-type, .carnot-area-ledger g[role='button']:focus-visible > rect:first-of-type { stroke-width: 3px; }
-.carnot-ledger-hint { font-size: 11px !important; text-align: center; }
-.carnot-projection-identity { display: block; padding: 4px 8px; margin: 3px 0; border: 1px solid transparent; border-radius: 4px; background: transparent; color: #487d82; font: 19px/1.6 Georgia, serif; cursor: pointer; text-align: left; }
-.carnot-projection-identity::before { content: ''; display: inline-block; width: 8px; height: 8px; margin-right: 8px; border-radius: 50%; background: currentColor; }
-.carnot-projection-identity[aria-pressed='true'] { border-color: currentColor; background: #ffffff70; }
-.carnot-revisit-projection { margin-top: 16px; }
-.carnot-proof-conclusion { border-top: 1px solid #d5ddd0; margin: 25px -24px 0; padding: 24px; background: #edf1e8; }
+.carnot-projection-identity { display: block; padding: 4px 8px; margin: 3px 0; border: 1px solid transparent; border-radius: 4px; background: transparent; color: #487d82; font: 19px/1.6 Georgia, serif; text-align: left; }
+.carnot-proof-conclusion { border-top: 1px solid #d5ddd0; margin: 25px -24px -24px; padding: 24px; background: #edf1e8; }
 .carnot-expansion { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px 10px; max-width: 760px; margin: 22px auto 10px; }
 .carnot-expansion-cell { display: grid; grid-template-columns: 20px minmax(0, 1fr); align-items: center; gap: 8px; }
 .carnot-expansion-plus { text-align: center; font: 23px Georgia, serif; color: #506b60; }
-.carnot-expanded-term { padding: 12px 8px; border: 1px solid #dce2d5; border-radius: 6px; background: #ffffff70; font: 23px/1.5 Georgia, serif; cursor: pointer; min-width: 0; }
-.carnot-expanded-term:focus-visible { outline: 2px solid currentColor; outline-offset: 3px; }
-.carnot-show-all { display: block; margin: 0 auto 24px; }
+.carnot-expanded-term { display: block; padding: 12px 8px; border: 1px solid #dce2d5; border-radius: 6px; background: #ffffff70; font: 23px/1.5 Georgia, serif; text-align: center; min-width: 0; }
 .carnot-collection { max-width: 900px; margin: 18px auto; padding: 16px; border: 1px solid #dce2d5; border-radius: 6px; }
 .carnot-collection h3, .carnot-pairs-heading { font-size: 12px; font-weight: 600; margin: 0 0 12px; }
 .carnot-pairs-heading { text-align: center; margin-top: 24px; color: #506b60; }
@@ -43,8 +31,6 @@
 .carnot-pair-identities .carnot-projection-identity { margin: 0; padding: 12px 8px; border-color: #dce2d5; min-width: 0; }
 .carnot-expanded-term[data-highlighted='true'], .carnot-collection[data-highlighted='true'], .carnot-projection-identity[data-highlighted='true'] { border-color: currentColor; box-shadow: 0 0 0 1px currentColor; background: #ffffffa0; }
 .carnot-expanded-term[data-dimmed='true'], .carnot-collection[data-dimmed='true'], .carnot-projection-identity[data-dimmed='true'] { opacity: 0.3; }
-.carnot-supporting-tiles { margin-top: 20px; border-top: 1px solid #dce2d5; padding-top: 16px; }
-.carnot-supporting-tiles summary { cursor: pointer; color: #506b60; font-size: 12px; }
 .carnot-angle-reasoning { max-width: 850px; margin: 20px auto; padding-left: 22px; color: #6d7b67; font-size: 13px; line-height: 1.9; }
 .carnot-angle-reasoning li { padding-left: 4px; margin-bottom: 10px; }
 .carnot-fraction { display: inline-flex; flex-direction: column; vertical-align: middle; text-align: center; font-size: 0.9em; line-height: 1.35; margin-inline: 3px; }
@@ -63,7 +49,7 @@
   .carnot-main-equation { font-size: 21px; gap: 3px; }
   .carnot-numeric-equation { font-size: 18px; }
   .carnot-area-explanations { grid-template-columns: 1fr; gap: 14px; }
-  .carnot-proof-conclusion { margin-inline: -18px; padding: 18px; }
+  .carnot-proof-conclusion { margin-inline: -18px; margin-bottom: -18px; padding: 18px; }
   .carnot-expansion { column-gap: 6px; }
   .carnot-expansion-cell { grid-template-columns: 12px minmax(0, 1fr); gap: 2px; }
   .carnot-expanded-term { font-size: 19px; padding: 10px 2px; }
