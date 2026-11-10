@@ -16,8 +16,9 @@ async function trianglePoints(page: Page): Promise<TrianglePoints> {
 }
 
 async function moveVertex(page: Page, name: string, x: number, y: number, release = true) {
-  const vertex = await page.getByRole('button', { name: `Triangle vertex ${name}`, exact: true })
-    .locator('.triangle-vertex-hit').boundingBox()
+  const control = page.getByRole('button', { name: `Triangle vertex ${name}`, exact: true })
+  await control.focus()
+  const vertex = await control.locator('.triangle-vertex-hit').boundingBox()
   const target = await page.locator('.triangle-diagram').evaluate((svg, point) => {
     const screen = new DOMPoint(point.x, point.y).matrixTransform((svg as SVGSVGElement).getScreenCTM()!)
     return { x: screen.x, y: screen.y }
@@ -27,6 +28,32 @@ async function moveVertex(page: Page, name: string, x: number, y: number, releas
   await page.mouse.down()
   await page.mouse.move(target.x, target.y, { steps: 12 })
   if (release) await page.mouse.up()
+}
+
+async function expectSegmentComparison(page: Page) {
+  const geometry = analyzeTriangle(await trianglePoints(page))
+  if (!geometry.valid) throw new Error(geometry.reason)
+  const readSegments = (testId: string) => page.getByTestId(testId).evaluateAll((nodes) => nodes.map((node) => {
+    if (!(node instanceof SVGLineElement)) throw new Error('Expected a line segment')
+    return { start: node.x1.baseVal.value, end: node.x2.baseVal.value, y1: node.y1.baseVal.value, y2: node.y2.baseVal.value }
+  }))
+  const radii = await readSegments('radius-sum-segment')
+  const distances = await readSegments('distance-sum-segment')
+  expect(radii).toHaveLength(2)
+  expect(distances).toHaveLength(3)
+  const scale = (radii[0].end - radii[0].start) / geometry.outer.radius
+  expect(scale).toBeGreaterThan(0)
+  expect((radii[1].end - radii[1].start) / scale).toBeCloseTo(geometry.inner.radius, 3)
+  expect(radii[0].end).toBeCloseTo(radii[1].start, 8)
+  expect(distances[0].start).toBeCloseTo(radii[0].start, 8)
+  distances.forEach((segment, index) => {
+    expect(segment.y1).toBe(segment.y2)
+    expect(segment.y1).toBeGreaterThan(radii[0].y1)
+    expect((segment.end - segment.start) / scale).toBeCloseTo(geometry.sides[index].signedDistance, 3)
+    if (index > 0) expect(segment.start).toBeCloseTo(distances[index - 1].end, 8)
+  })
+  expect(distances[2].end).toBeCloseTo(radii[1].end, 8)
+  return distances
 }
 
 test('switches tabs accessibly and preserves independent construction states', async ({ page }) => {
@@ -71,6 +98,57 @@ test('toggles every construction layer independently and keeps the live readouts
   }
   await expect(page.getByTestId('circumradius')).toHaveText(originalR!)
   expect(errors).toEqual([])
+})
+
+test('shows live segment sums with shared scale whenever the Carnot panel is shown', async ({ page }) => {
+  await openTriangle(page)
+  const chart = page.getByRole('img', { name: 'Length comparison of R plus r and the signed Carnot distances' })
+  await expect(chart).toHaveCount(0)
+  await page.getByRole('button', { name: 'Carnot distances', exact: true }).click()
+  await expect(chart).toBeVisible()
+  await expect(page.getByRole('button', { name: 'Radius segments R and r', exact: true })).toHaveAttribute('aria-pressed', 'false')
+  const initial = await expectSegmentComparison(page)
+  expect(initial.every((segment) => segment.end > segment.start)).toBe(true)
+  expect(new Set(initial.map((segment) => segment.y1)).size).toBe(1)
+  await page.getByRole('button', { name: 'Radius segments R and r', exact: true }).click()
+  expect(await expectSegmentComparison(page)).toEqual(initial)
+  const radiusColors = await page.locator('.outer-radius line, .inner-radius line').evaluateAll((nodes) => nodes.map((node) => getComputedStyle(node).stroke))
+  expect(await page.getByTestId('radius-sum-segment').evaluateAll((nodes) => nodes.map((node) => getComputedStyle(node).stroke))).toEqual(radiusColors)
+  await page.getByRole('slider', { name: 'Triangle seed' }).fill('12')
+  expect(await expectSegmentComparison(page)).not.toEqual(initial)
+  await page.setViewportSize({ width: 390, height: 844 })
+  await expectSegmentComparison(page)
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true)
+  await page.getByRole('button', { name: 'Carnot distances', exact: true }).click()
+  await expect(chart).toHaveCount(0)
+})
+
+test('shows negative Carnot segments pointing left in any position and handles a zero distance', async ({ page }) => {
+  await openTriangle(page)
+  await page.getByRole('button', { name: 'Carnot distances', exact: true }).click()
+  const obtuse = [{ x: 250, y: 380 }, { x: 100, y: 400 }, { x: 500, y: 400 }]
+  for (let negative = 0; negative < 3; negative++) {
+    await page.getByRole('button', { name: 'Reset triangle', exact: true }).click()
+    for (let index = 0; index < 3; index++) {
+      const point = obtuse[(index - negative + 3) % 3]
+      await moveVertex(page, 'ABC'[index], point.x, point.y)
+    }
+    const segments = await expectSegmentComparison(page)
+    expect(segments.filter((segment) => segment.end < segment.start)).toHaveLength(1)
+    expect(new Set(segments.map((segment) => segment.y1)).size).toBe(3)
+    expect(segments[negative].end).toBeLessThan(segments[negative].start)
+    const negativeLine = page.getByTestId('distance-sum-segment').nth(negative)
+    await expect(negativeLine).toHaveAttribute('marker-end', /carnot-sum-arrow/)
+    const diagramColors = await page.locator('[data-testid="carnot-distance"] > line').evaluateAll((nodes) => nodes.map((node) => getComputedStyle(node).stroke))
+    expect(await page.getByTestId('distance-sum-segment').evaluateAll((nodes) => nodes.map((node) => getComputedStyle(node).stroke))).toEqual(diagramColors)
+  }
+  await page.getByRole('button', { name: 'Reset triangle', exact: true }).click()
+  await moveVertex(page, 'A', 100, 100)
+  await moveVertex(page, 'B', 100, 400)
+  await moveVertex(page, 'C', 500, 400)
+  const right = await expectSegmentComparison(page)
+  expect(right[1].end).toBeCloseTo(right[1].start, 8)
+  await expect(page.getByTestId('distance-sum-segment').nth(1)).not.toHaveAttribute('marker-end')
 })
 
 test('marks perpendicular intersections and equal half-angles while vertices move and the view changes', async ({ page }) => {
@@ -190,9 +268,11 @@ test('handles obtuse and collinear triangles honestly and fits an external circu
   await expect(page.getByTestId('inradius')).toHaveText('—')
   await expect(page.getByTestId('triangle-circumcircle')).toHaveCount(0)
   await expect(page.getByTestId('triangle-incircle')).toHaveCount(0)
+  await expect(page.locator('.carnot-segments')).toHaveCount(0)
   await moveVertex(page, 'A', 250, 250)
   await expect(page.getByTestId('circumradius')).not.toHaveText('—')
   await expect(page.getByTestId('triangle-incircle')).toHaveCount(1)
+  await expect(page.locator('.carnot-segments')).toHaveCount(1)
 })
 
 test('keeps the diagram square and the new controls usable on a phone', async ({ page }) => {

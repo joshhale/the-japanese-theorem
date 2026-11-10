@@ -61,6 +61,10 @@ Carnot distances are signed perpendicular distances from O to the side lines.
 They are negative when O and the opposite vertex are on different sides of the
 line. The optional panel computes their sum independently of R + r, including
 obtuse triangles. This is a construction aid, not a scripted proof walkthrough.
+The Carnot panel also compares R + r with the signed distance sum as head-to-tail
+segments on a common scale. Negative distances point left; staggered tracks
+keep backtracking visible, and vertical connectors have no length contribution.
+This comparison is shown even when radius segments in the main diagram are off.
 
 Collinear or overlapping vertices show an explicit message and unavailable
 radius readouts rather than invalid circles. Fit circles adjusts the square

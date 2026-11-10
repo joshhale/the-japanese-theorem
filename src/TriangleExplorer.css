@@ -47,6 +47,14 @@
 .carnot-equation { display: flex; align-items: baseline; gap: 20px; font-family: Georgia, serif; font-size: 23px; margin: 18px 0; }
 .carnot-values { display: flex; gap: 20px; flex-wrap: wrap; font-size: 13px; font-variant-numeric: tabular-nums; line-height: 1.8; }
 .carnot-readout p { margin: 12px 0 0; font-size: 10px; color: var(--muted); line-height: 1.7; }
+.carnot-segment-comparison { margin-top: 20px; border-top: 1px solid var(--border); padding-top: 18px; }
+.carnot-segments { display: block; overflow: visible; }
+.carnot-segments text { font-family: Georgia, serif; text-anchor: middle; fill: currentColor; font-size: 15px; paint-order: stroke; stroke: #fdfcf8; stroke-width: 3px; stroke-linejoin: round; }
+.sum-segment > line { stroke: currentColor; stroke-width: 2; }
+.sum-segment.negative > line:not(.sum-connector) { stroke-dasharray: 5 4; }
+.sum-segment > line.sum-connector, .sum-guide { stroke: #c6ccbf; stroke-width: 1; stroke-dasharray: 3 4; }
+.sum-endpoint { fill: #54766e; }
+.carnot-segments .sum-origin-label { font-size: 11px; fill: var(--muted); }
 @media (max-width: 740px) {
   .controls.triangle-controls { display: block; }
   .triangle-controls .panel-heading { margin-bottom: 20px; }

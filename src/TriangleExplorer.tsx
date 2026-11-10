@@ -41,6 +41,66 @@ function angleMarker(center: Point, from: Point, to: Point, radius: number, tick
   }
 }
 
+function CarnotSegments({ outerRadius, innerRadius, distances }: {
+  outerRadius: number; innerRadius: number; distances: readonly number[]
+}) {
+  const radiusEnds = [0, outerRadius, outerRadius + innerRadius]
+  const distanceEnds = [0]
+  for (const value of distances) distanceEnds.push(distanceEnds[distanceEnds.length - 1] + value)
+  const minimum = Math.min(0, ...distanceEnds)
+  const maximum = Math.max(...radiusEnds, ...distanceEnds)
+  const x = (value: number) => `${8 + (value - minimum) / (maximum - minimum) * 84}%`
+  const colors = ['#487d82', '#bd6b4d', ...distances.map((value, index) => value < -1e-8 ? '#b65341' : DISTANCE_COLORS[index])]
+  const hasNegative = distances.some((value) => value < -1e-8)
+  const row = (index: number) => 100 + (hasNegative ? index * 36 : 0)
+  const height = hasNegative ? 210 : 142
+
+  return <div className="carnot-segment-comparison">
+    <svg className="carnot-segments" width="100%" height={height} role="img"
+      aria-label="Length comparison of R plus r and the signed Carnot distances">
+      <title>R + r and the signed sum of the three Carnot distances, on one scale</title>
+      <desc>Both constructions start at zero. Radius segments point right. Distance segments join head-to-tail, using separate tracks when a negative segment points left. Vertical connectors do not contribute length.</desc>
+      <defs>
+        {colors.map((color, index) => (
+          <marker key={index} id={`carnot-sum-arrow-${index}`} viewBox="0 -4 8 8" refX="7" refY="0"
+            markerWidth="8" markerHeight="8" markerUnits="userSpaceOnUse" orient="auto">
+            <path d="M0,-3 L7,0 L0,3" fill="none" stroke={color} strokeWidth="1.7" />
+          </marker>
+        ))}
+      </defs>
+      <line className="sum-guide" x1={x(0)} y1="12" x2={x(0)} y2={height - 18} />
+      <line className="sum-guide" x1={x(radiusEnds[2])} y1="12" x2={x(radiusEnds[2])} y2={height - 18} />
+      <text className="sum-origin-label" x={x(0)} y={height - 5}>0</text>
+      {[outerRadius, innerRadius].map((value, index) => (
+        <g key={index} className="sum-segment" style={{ color: colors[index] }}>
+          <line data-testid="radius-sum-segment" x1={x(radiusEnds[index])} y1="40" x2={x(radiusEnds[index + 1])} y2="40"
+            markerEnd={`url(#carnot-sum-arrow-${index})`} />
+          <text x={x((radiusEnds[index] + radiusEnds[index + 1]) / 2)} y="27">{index === 0 ? 'R' : 'r'}</text>
+          <title>{`${index === 0 ? 'R' : 'r'} = ${formatLength(value)}`}</title>
+        </g>
+      ))}
+      {distances.map((value, index) => (
+        <g key={index} className={`sum-segment${value < -1e-8 ? ' negative' : ''}`} style={{ color: colors[index + 2] }}>
+          {hasNegative && index < distances.length - 1 && <line className="sum-connector"
+            x1={x(distanceEnds[index + 1])} y1={row(index)} x2={x(distanceEnds[index + 1])} y2={row(index + 1)} />}
+          <line data-testid="distance-sum-segment" x1={x(distanceEnds[index])} y1={row(index)}
+            x2={x(distanceEnds[index + 1])} y2={row(index)}
+            markerEnd={Math.abs(value) > 1e-8 ? `url(#carnot-sum-arrow-${index + 2})` : undefined} />
+          <text x={x((distanceEnds[index] + distanceEnds[index + 1]) / 2)} y={row(index) - 13}>
+            d<tspan baselineShift="sub" fontSize="10">{'abc'[index]}</tspan>{value < -1e-8 ? ' < 0' : Math.abs(value) <= 1e-8 ? ' = 0' : ''}
+          </text>
+          <title>{`d${'abc'[index]} = ${formatLength(value)}${value < -1e-8 ? ', points left' : ''}`}</title>
+        </g>
+      ))}
+      <circle className="sum-endpoint" cx={x(0)} cy="40" r="3" />
+      <circle className="sum-endpoint" cx={x(radiusEnds[2])} cy="40" r="3" />
+      <circle className="sum-endpoint" cx={x(0)} cy={row(0)} r="3" />
+      <circle className="sum-endpoint" cx={x(distanceEnds[distances.length])} cy={row(distances.length - 1)} r="3" />
+    </svg>
+    <p>Same scale. Add segments head-to-tail; a negative distance points left.{hasNegative ? ' Vertical steps only separate overlapping segments.' : ''}</p>
+  </div>
+}
+
 function TriangleExplorer() {
   const [seed, setSeed] = useState(7)
   const [points, setPoints] = useState<TrianglePoints>(() => createFreeTriangle(7))
@@ -296,6 +356,8 @@ function TriangleExplorer() {
             <span>= <output data-testid="carnot-sum">{formatLength(geometry.sides.reduce((total, side) => total + side.signedDistance, 0))}</output></span>
             <span>R + r = <output data-testid="radii-sum">{formatLength(geometry.outer.radius + geometry.inner.radius)}</output></span>
           </div>
+          <CarnotSegments outerRadius={geometry.outer.radius} innerRadius={geometry.inner.radius}
+            distances={geometry.sides.map((side) => side.signedDistance)} />
         </> : <p>A nondegenerate triangle is needed for this identity.</p>}
         <p>Signed distances are computed from O to the side lines. Rounded display; full-precision calculations.</p>
       </section>}
