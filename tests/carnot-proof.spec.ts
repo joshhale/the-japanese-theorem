@@ -142,6 +142,56 @@ test('isolates the right triangle and links each side substitution to its own co
   await page.screenshot({ path: testInfo.outputPath('carnot-cosine-mobile.png'), fullPage: true })
 })
 
+test('keeps construction labels clear and distance labels outside the right triangle', async ({ page }) => {
+  await openProof(page)
+  await page.getByRole('button', { name: '2 Read the cosine' }).click()
+  for (const kind of ['Acute', 'Obtuse', 'Right']) {
+    await page.getByRole('button', { name: kind, exact: true }).click()
+    for (const [focus, label] of ['a / A', 'b / B', 'c / C'].entries()) {
+      await page.getByRole('radio', { name: label, exact: true }).check()
+      await expect(page.getByTestId('carnot-proof-distance').locator('tspan')).toHaveText('abc'[focus])
+      await expect.poll(() => page.locator('.carnot-proof-diagram').evaluate((svg, index) => {
+        const side = svg.querySelectorAll('[data-testid="carnot-proof-side-label"]')[index]?.getBoundingClientRect()
+        const midpoint = svg.querySelector('[data-testid="carnot-chord-midpoint"] text')?.getBoundingClientRect()
+        if (!side || !midpoint) throw new Error('Both side and midpoint labels must be visible')
+        return side.right < midpoint.left || midpoint.right < side.left
+          || side.bottom < midpoint.top || midpoint.bottom < side.top
+      }, focus), { message: `${kind} triangle: ${label} must not overlap M` }).toBe(true)
+      const { leg, offset } = await page.getByTestId('carnot-proof-distance').evaluate((group) => {
+        const line = group.querySelector('line')
+        const text = group.querySelector('text')
+        if (!line || !text) throw new Error('Expected a distance segment and label')
+        const o = { x: Number(line.getAttribute('x1')), y: Number(line.getAttribute('y1')) }
+        const m = { x: Number(line.getAttribute('x2')), y: Number(line.getAttribute('y2')) }
+        return {
+          leg: { x: m.x - o.x, y: m.y - o.y },
+          offset: { x: Number(text.getAttribute('x')) - (o.x + m.x) / 2,
+            y: Number(text.getAttribute('y')) - (o.y + m.y) / 2 },
+        }
+      })
+      const side = (await actualGeometry(page)).sides[focus]
+      const alongChord = { x: (side.end.x - side.start.x) / side.length, y: (side.end.y - side.start.y) / side.length }
+      expect(Number.isFinite(offset.x) && Number.isFinite(offset.y)).toBe(true)
+      expect(offset.x * alongChord.x + offset.y * alongChord.y).toBeGreaterThan(0)
+      expect(offset.x * alongChord.y - offset.y * alongChord.x).toBeCloseTo(0, 6)
+      const legLength = Math.hypot(leg.x, leg.y)
+      if (legLength > 1e-6) expect((offset.x * leg.x + offset.y * leg.y) / legLength).toBeCloseTo(0, 6)
+    }
+  }
+  const points = await pointsIn(page)
+  const readLabels = () => page.getByTestId('carnot-proof-side-label').evaluateAll((nodes) =>
+    nodes.map((node) => [Number(node.getAttribute('x')), Number(node.getAttribute('y'))]))
+  const expanded = await readLabels()
+  await page.getByRole('button', { name: 'Construction lines', exact: true }).click()
+  const normal = await readLabels()
+  expect(normal.slice(0, 2)).toEqual(expanded.slice(0, 2))
+  expect(normal[2]).not.toEqual(expanded[2])
+  await page.getByRole('button', { name: '3 Project a side' }).click()
+  await page.getByRole('button', { name: 'Construction lines', exact: true }).click()
+  expect(await readLabels()).toEqual(normal)
+  expect(await pointsIn(page)).toEqual(points)
+})
+
 test('walks through all constructions and compares the two area decompositions', async ({ page }, testInfo) => {
   await openProof(page)
   await expect(page.getByTestId('carnot-central-construction')).toBeVisible()

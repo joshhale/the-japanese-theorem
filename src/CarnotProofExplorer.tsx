@@ -125,10 +125,12 @@ function TrianglePicture({ points, proof, step, focus, center, layers, activeTil
     {geometry.sides.map((item, index) => {
       const middle = screen(item.midpoint)
       const outward = proof.projections[index].outward
+      const labelOffset = layers.construction && step <= STEP.cosine && index === focus ? (rightAngle ? 80 : 50) : 19
       return <g key={index}>
         {activeTile?.col === index && <line x1={screen(item.start).x} y1={screen(item.start).y}
           x2={screen(item.end).x} y2={screen(item.end).y} stroke="#bd6b4d" strokeWidth="5" />}
-        <text x={middle.x + outward.x * 19} y={middle.y + outward.y * 19} textAnchor="middle" dominantBaseline="middle" fill={COLORS[index]}>{'abc'[index]}</text>
+        <text data-testid="carnot-proof-side-label" x={middle.x + outward.x * labelOffset} y={middle.y + outward.y * labelOffset}
+          textAnchor="middle" dominantBaseline="middle" fill={COLORS[index]}>{'abc'[index]}</text>
       </g>
     })}
     {layers.incircle && step >= STEP.side && <g data-testid="carnot-proof-incircle">
@@ -139,12 +141,15 @@ function TrianglePicture({ points, proof, step, focus, center, layers, activeTil
     {layers.distances && step >= STEP.cosine && geometry.sides.map((item, index) => {
       if (step === STEP.cosine && index !== focus) return null
       const target = screen(item.foot)
+      // The chord points away from the shaded half-triangle and is perpendicular to OM.
+      const labelOffset = { x: (item.end.x - item.start.x) / item.length * 18, y: (item.end.y - item.start.y) / item.length * 18 }
       const active = activeTile ? activeTile.row === index : step >= STEP.side || index === focus
       return <g key={index} data-testid="carnot-proof-distance" data-value={item.signedDistance}
         opacity={active ? 1 : 0.22} style={{ color: negative(item.signedDistance) ? '#b65341' : COLORS[index] }}>
         <line x1={o.x} y1={o.y} x2={target.x} y2={target.y} stroke="currentColor"
           strokeWidth={activeTile?.row === index ? 4 : 2.5} strokeDasharray={negative(item.signedDistance) ? '6 4' : undefined} />
-        <text x={(o.x + target.x) / 2 + 11} y={(o.y + target.y) / 2 - 9} fill="currentColor">
+        <text x={(o.x + target.x) / 2 + labelOffset.x} y={(o.y + target.y) / 2 + labelOffset.y}
+          textAnchor="middle" dominantBaseline="middle" fill="currentColor">
           d<tspan baselineShift="sub" fontSize="12">{'abc'[index]}</tspan>
         </text>
       </g>
