@@ -123,7 +123,10 @@ with an original nine-tile visualization of the final addition.
    height r. Hiding it switches the dissection to O and signed distances.
 5. Split three strips of width `P = a + b + c` into nine actual-area tiles.
    The three diagonal tiles sum to `Pr`. The other six pair up through the
-   side-projection identities and sum to `PR`. Hatched tiles are subtracted.
+   Step 3 identities: `c d_b + b d_c = aR`, and similarly for `bR` and `cR`.
+   Matching colors link each pair to its clickable equation; a selected pair
+   can be revisited in Step 3. Adding all three gives `aR + bR + cR = PR`.
+   Hatched tiles are subtracted.
 6. Divide `P(d_a + d_b + d_c) = P(r + R)` by the positive perimeter P.
 
 Choose 25 seeds or explicit acute, right, and obtuse examples. Drag vertices

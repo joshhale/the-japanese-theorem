@@ -229,7 +229,8 @@ test('uses true signed tile areas, correct projection pairs, and linked geometry
   const tiles = await page.getByTestId('carnot-area-tile').evaluateAll((nodes) => nodes.map((node) => {
     const rect = node.querySelector('rect')
     if (!rect) throw new Error('Tile must have a rectangle')
-    return { area: Number(node.getAttribute('data-area')), pixels: Number(rect.getAttribute('width')) * Number(rect.getAttribute('height')) }
+    return { area: Number(node.getAttribute('data-area')), pixels: Number(rect.getAttribute('width')) * Number(rect.getAttribute('height')),
+      inner: node.getAttribute('data-inner') === 'true', color: getComputedStyle(rect).fill }
   }))
   expect(tiles).toHaveLength(9)
   const areaScale = tiles[0].pixels / Math.abs(tiles[0].area)
@@ -237,15 +238,37 @@ test('uses true signed tile areas, correct projection pairs, and linked geometry
     expect(tile.area).toBeCloseTo(geometry.sides[index % 3].length * geometry.sides[Math.floor(index / 3)].signedDistance, 10)
     expect(tile.pixels / Math.abs(tile.area)).toBeCloseTo(areaScale, 7)
   })
+  expect(new Set(tiles.filter((tile) => !tile.inner).map((tile) => tile.color)).size).toBe(3)
+  await expect(page.getByTestId('carnot-R-pair-total')).toHaveText('aR + bR + cR = (a + b + c)R = PR')
   await page.getByRole('button', { name: 'r pieces', exact: true }).click()
   await expect(page.locator('[data-testid="carnot-area-tile"][opacity="1"]')).toHaveCount(3)
   await page.getByRole('button', { name: 'R pieces', exact: true }).click()
+  await expect(page.locator('[data-testid="carnot-area-tile"][opacity="1"]')).toHaveCount(2)
   for (const [focus, label] of ['a / A', 'b / B', 'c / C'].entries()) {
-    await page.getByRole('radio', { name: label, exact: true }).check()
+    await page.getByRole('button', { name: 'All', exact: true }).click()
+    const identity = page.getByTestId('carnot-projection-pair').nth(focus)
+    await identity.click()
+    await expect(identity).toHaveAttribute('aria-pressed', 'true')
+    await expect(page.getByRole('radio', { name: label, exact: true })).toBeChecked()
+    await expect(page.getByRole('button', { name: 'R pieces', exact: true })).toHaveAttribute('aria-pressed', 'true')
+    await expect(page.locator('[data-testid="carnot-area-tile"][opacity="1"]')).toHaveCount(2)
     const pair = await page.locator('[data-testid="carnot-area-tile"][opacity="1"]').evaluateAll((nodes) =>
-      nodes.reduce((sum, node) => sum + Number(node.getAttribute('data-area')), 0))
-    expect(pair).toBeCloseTo(geometry.sides[focus].length * geometry.outer.radius, 10)
+      nodes.map((node) => {
+        const rect = node.querySelector('rect')
+        if (!rect) throw new Error('Tile must have a rectangle')
+        return { area: Number(node.getAttribute('data-area')), color: getComputedStyle(rect).fill }
+      }))
+    expect(pair.reduce((sum, tile) => sum + tile.area, 0)).toBeCloseTo(geometry.sides[focus].length * geometry.outer.radius, 10)
+    const color = await identity.evaluate((node) => getComputedStyle(node).color)
+    expect(pair.every((tile) => tile.color === color)).toBe(true)
   }
+  await page.getByRole('button', { name: 'Revisit Step 3 for side c', exact: true }).click()
+  await expect(page.getByRole('button', { name: '3 Project a side', exact: true })).toHaveAttribute('aria-pressed', 'true')
+  await expect(page.getByRole('radio', { name: 'c / C', exact: true })).toBeChecked()
+  await expect(page.getByTestId('carnot-side-projection')).toBeVisible()
+  await page.getByRole('button', { name: '5 Collect the tiles', exact: true }).click()
+  await expect(page.getByTestId('carnot-projection-pair').nth(2)).toHaveAttribute('aria-pressed', 'true')
+  await expect(page.locator('[data-testid="carnot-area-tile"][opacity="1"]')).toHaveCount(2)
   await page.getByRole('button', { name: 'All', exact: true }).click()
   await page.getByTestId('carnot-area-tile').first().focus()
   await expect(page.getByTestId('carnot-proof-distance').first().locator('line')).toHaveAttribute('stroke-width', '4')

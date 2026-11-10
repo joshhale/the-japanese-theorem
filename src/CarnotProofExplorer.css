@@ -26,7 +26,9 @@
 .carnot-area-ledger g[role='button']:hover > rect:first-of-type, .carnot-area-ledger g[role='button']:focus-visible > rect:first-of-type { stroke-width: 3px; }
 .carnot-ledger-hint { font-size: 11px !important; text-align: center; }
 .carnot-projection-identity { display: block; padding: 4px 8px; margin: 3px 0; border: 1px solid transparent; border-radius: 4px; background: transparent; color: #487d82; font: 19px/1.6 Georgia, serif; cursor: pointer; text-align: left; }
-.carnot-projection-identity[aria-pressed='true'] { border-color: #c3d3cc; background: #ffffff70; }
+.carnot-projection-identity::before { content: ''; display: inline-block; width: 8px; height: 8px; margin-right: 8px; border-radius: 50%; background: currentColor; }
+.carnot-projection-identity[aria-pressed='true'] { border-color: currentColor; background: #ffffff70; }
+.carnot-revisit-projection { margin-top: 16px; }
 .carnot-proof-conclusion { border-top: 1px solid #d5ddd0; margin: 25px -24px -24px; padding: 24px; background: #edf1e8; }
 .carnot-cancelled { text-decoration: line-through; text-decoration-color: #b65341; color: #8d987f; }
 .carnot-angle-reasoning { max-width: 850px; margin: 20px auto; padding-left: 22px; color: #6d7b67; font-size: 13px; line-height: 1.9; }

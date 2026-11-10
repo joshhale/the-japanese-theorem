@@ -19,7 +19,7 @@ const STEPS = [
   { title: 'Read the cosine', text: 'Keep just one of the right triangles from Step 1. Its hypotenuse is a radius R; its adjacent leg is OM. This is where cos A = d_a / R comes from.' },
   { title: 'Project a side', text: 'Drop an altitude to split a side into two signed projections. Replace each cosine using Step 2, then multiply by R. Repeat for all three sides.' },
   { title: 'Measure area twice', text: 'Hide the incircle to join O to the vertices; show it to join I instead. Both constructions measure the same triangle. Double the areas to remove the factor ½.' },
-  { title: 'Collect the tiles', text: 'Make three strips of width P = a + b + c, with signed heights d_a, d_b, d_c. Three tiles give Pr; the other six give PR. Hatched tiles are subtracted.' },
+  { title: 'Collect the tiles', text: 'The three diagonal tiles total Pr by Step 4. Use the three side-projection identities from Step 3 to pair the other six into aR, bR, and cR.' },
   { title: 'Cancel the perimeter', text: 'The nine tiles have total signed area P(d_a + d_b + d_c) = Pr + PR. Divide by the positive perimeter P. What remains is Carnot’s theorem.' },
 ]
 
@@ -292,7 +292,9 @@ function AreaLedger({ proof, focus, group, onHover }: {
     {proof.geometry.sides.map((side, row) => <text key={row} x="80" y={ys[row] + Math.abs(side.signedDistance) * scale / 2}
       textAnchor="end" dominantBaseline="middle" style={{ fill: COLORS[row] }}>d<tspan baselineShift="sub" fontSize="12">{'abc'[row]}</tspan>{negative(side.signedDistance) ? ' < 0' : ''}</text>)}
     {proof.tiles.map((tile) => {
-      const highlighted = group === 'All' || (group === 'r pieces' ? tile.inner : !tile.inner && 3 - tile.row - tile.col === focus)
+      const pair = 3 - tile.row - tile.col
+      const color = tile.inner ? '#bd6b4d' : COLORS[pair]
+      const highlighted = group === 'All' || (group === 'r pieces' ? tile.inner : !tile.inner && pair === focus)
       const height = Math.abs(tile.height) * scale
       return <g key={`${tile.row}-${tile.col}`} role="button" tabIndex={0}
         aria-label={`${'abc'[tile.col]} times d_${'abc'[tile.row]}: ${format(tile.area)}, ${tile.inner ? 'inradius' : 'circumradius'} piece`}
@@ -302,11 +304,11 @@ function AreaLedger({ proof, focus, group, onHover }: {
         onKeyDown={(event) => { if (['Enter', ' '].includes(event.key)) { event.preventDefault(); onHover(tile) } }}>
         <title>{`${'abc'[tile.col]} × d_${'abc'[tile.row]} = ${format(tile.area)}${negative(tile.area) ? ' (subtract this area)' : ''}`}</title>
         <rect x={xs[tile.col]} y={ys[tile.row]} width={tile.width * scale} height={height}
-          fill={tile.inner ? '#bd6b4d' : '#487d82'} fillOpacity="0.18" stroke={tile.inner ? '#bd6b4d' : '#487d82'} />
+          fill={color} fillOpacity="0.18" stroke={color} />
         {negative(tile.area) && <rect data-testid="carnot-negative-tile" x={xs[tile.col]} y={ys[tile.row]}
           width={tile.width * scale} height={height} fill="url(#carnot-tile-negative)" />}
         {height > 22 && tile.width * scale > 48 && <text x={(xs[tile.col] + xs[tile.col + 1]) / 2}
-          y={ys[tile.row] + height / 2} dominantBaseline="middle" textAnchor="middle">
+          y={ys[tile.row] + height / 2} dominantBaseline="middle" textAnchor="middle" style={{ fill: color }}>
           {'abc'[tile.col]}d<tspan baselineShift="sub" fontSize="12">{'abc'[tile.row]}</tspan>
         </text>}
       </g>
@@ -449,21 +451,30 @@ export default function CarnotProofExplorer() {
           <p>Δ denotes the triangle’s area. Hide the incircle for the O dissection; show it for the I dissection.</p>
         </>}
         {step >= STEP.tiles && <>
-          <div className="carnot-main-equation">P(<D index={0} /> + <D index={1} /> + <D index={2} />) = <span className="carnot-r-color">Pr</span> + <span className="carnot-R-color">PR</span></div>
+          <p>Let P = a + b + c, the whole perimeter. The nine tiles split into two groups:</p>
+          <div className="carnot-area-explanations"><div className="carnot-r-color"><h3>Three diagonal tiles: use Step 4</h3>
+            <div className="carnot-small-equation">{weighted} = (a + b + c)r = Pr</div>
+            <output data-testid="carnot-inner-tiles">{format(proof.innerArea)}</output></div>
+            <div className="carnot-R-color"><h3>Six remaining tiles: pair them using Step 3</h3>
+              <p>Each pair, not each tile, equals a side times R. Click an equation to highlight its two matching-colored tiles.</p>
+              {geometry.sides.map((_, index) => <button key={index} className="carnot-projection-identity"
+                data-testid="carnot-projection-pair" style={{ color: COLORS[index] }}
+                aria-pressed={group === 'R pieces' && focus === index}
+                onClick={() => { setFocus(index); setGroup('R pieces') }}>
+                {'abc'[(index + 2) % 3]}<D index={(index + 1) % 3} /> + {'abc'[(index + 1) % 3]}<D index={(index + 2) % 3} /> = {'abc'[index]}R
+              </button>)}
+              <p>Add the three pairs, counting each of the six tiles exactly once:</p>
+              <div className="carnot-small-equation" data-testid="carnot-R-pair-total">aR + bR + cR = (a + b + c)R = PR</div>
+              <output data-testid="carnot-outer-tiles">{format(proof.outerArea)}</output>
+              {group === 'R pieces' && <button className="text-button carnot-revisit-projection"
+                onClick={() => { setStep(STEP.side); setActiveTile(null) }}>Revisit Step 3 for side {'abc'[focus]}</button>}
+            </div></div>
           <div className="carnot-ledger-controls" role="group" aria-label="Highlight area pieces">
             {(['All', 'r pieces', 'R pieces'] as const).map((value) => <button key={value} aria-pressed={group === value} onClick={() => setGroup(value)}>{value}</button>)}
           </div>
           <AreaLedger proof={proof} focus={focus} group={group} onHover={setActiveTile} />
-          <p className="carnot-ledger-hint">Actual widths and signed areas, on one scale. Hatching means subtract. Hover or focus a tile to highlight its base and height. For R pieces, choose a focus side to inspect each pair.</p>
-          <div className="carnot-area-explanations"><div className="carnot-r-color"><h3>Three r pieces</h3>
-            <div className="carnot-small-equation">{weighted} = Pr</div>
-            <output data-testid="carnot-inner-tiles">{format(proof.innerArea)}</output></div>
-            <div className="carnot-R-color"><h3>Six R pieces, paired by side projection</h3>
-              {geometry.sides.map((_, index) => <button key={index} className="carnot-projection-identity" aria-pressed={focus === index}
-                onClick={() => { setFocus(index); setGroup('R pieces') }}>
-                {'abc'[(index + 2) % 3]}<D index={(index + 1) % 3} /> + {'abc'[(index + 1) % 3]}<D index={(index + 2) % 3} /> = {'abc'[index]}R
-              </button>)}
-              <output data-testid="carnot-outer-tiles">{format(proof.outerArea)}</output></div></div>
+          <p className="carnot-ledger-hint">Matching colors mark each R pair. Actual widths and signed areas share one scale; hatching means subtract. Hover or focus a tile to highlight its base and height.</p>
+          <div className="carnot-main-equation">P(<D index={0} /> + <D index={1} /> + <D index={2} />) = <span className="carnot-r-color">Pr</span> + <span className="carnot-R-color">PR</span></div>
         </>}
         {step === STEP.conclusion && <div className="carnot-proof-conclusion" data-testid="carnot-proof-conclusion">
           <div className="carnot-main-equation"><span className="carnot-cancelled">P</span>(<D index={0} /> + <D index={1} /> + <D index={2} />) = <span className="carnot-cancelled">P</span>(r + R)</div>
