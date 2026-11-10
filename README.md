@@ -91,6 +91,9 @@ absolute lengths. This remains valid when the circumcenter lies outside.
 Matching colors link terms to distances in both diagrams; hover or focus a term
 to highlight it. Incircles, boundary distances, diagonal contributions, and the
 circumradius segment can be toggled independently.
+Triangle view selects First, Second, or Both within each visible quadrilateral.
+It filters shading, incircles, and distance annotations, without changing the
+triangulation, proof equations, or computed totals.
 
 The final step compares both actual inradius sums and the independently computed
 boundary-distance sum minus 2R, with radius segments on a common scale. None of

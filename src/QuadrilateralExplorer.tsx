@@ -20,6 +20,7 @@ const screen = (point: Point) => ({ x: 320 + point.x * 247, y: 320 + point.y * 2
 const number = (value: number) => (Math.abs(value) < 0.0000005 ? 0 : value).toFixed(6)
 const negative = (value: number) => value < -1e-8
 type Highlight = (key: string | null) => void
+type TriangleView = 'First' | 'Second' | 'Both'
 
 function Radius({ index }: { index: number }) {
   return <span className="proof-radius" style={{ color: RADIUS_COLORS[index - 1] }}>r<sub>{index}</sub></span>
@@ -71,8 +72,9 @@ function SumBars({ triangles }: { triangles: ProofTriangle[] }) {
   </svg>
 }
 
-function ProofDiagram({ diagonal, points, triangles, boundary, step, layers, active, highlight, onMove, onRestore }: {
+function ProofDiagram({ diagonal, points, triangles, boundary, triangleView, step, layers, active, highlight, onMove, onRestore }: {
   diagonal: 'AC' | 'BD'; points: QuadrilateralPoints; triangles: ProofTriangle[]; boundary: ProofTerm[]
+  triangleView: TriangleView
   step: number; layers: { incircles: boolean; distances: boolean; diagonal: boolean; radius: boolean }
   active: string | null; highlight: Highlight
   onMove: (index: number, angle: number) => void; onRestore: (points: QuadrilateralPoints) => void
@@ -83,6 +85,11 @@ function ProofDiagram({ diagonal, points, triangles, boundary, step, layers, act
   const a = screen(points[diagonalTerm.edge[0]])
   const b = screen(points[diagonalTerm.edge[1]])
   const sum = triangles.reduce((total, triangle) => total + triangle.geometry.inner.radius, 0)
+  const visibleTriangles = triangles.filter((_, index) =>
+    triangleView === 'Both' || index === (triangleView === 'First' ? 0 : 1))
+  const visibleBoundary = boundary.filter((term) =>
+    visibleTriangles.some((triangle) => triangle.terms.some((item) => item.key === term.key)))
+  const showCancellation = step >= 3 && triangleView === 'Both'
 
   function move(event: PointerEvent<SVGSVGElement>) {
     if (!drag.current || !svgRef.current) return
@@ -100,7 +107,7 @@ function ProofDiagram({ diagonal, points, triangles, boundary, step, layers, act
   }
 
   return <div className="proof-diagram-card" data-testid={`proof-${diagonal}`}>
-    <h2>Diagonal {diagonal} <span>{triangles.map((triangle) => triangle.label).join(' + ')}</span></h2>
+    <h2>Diagonal {diagonal} <span>{visibleTriangles.map((triangle) => triangle.label).join(' + ')}</span></h2>
     <svg ref={svgRef} viewBox="0 0 640 640" className="geometry proof-diagram"
       aria-label={`Cyclic quadrilateral with diagonal ${diagonal}`}
       onPointerMove={move}
@@ -120,7 +127,7 @@ function ProofDiagram({ diagonal, points, triangles, boundary, step, layers, act
       </pattern></defs>
       <rect width="640" height="640" fill={`url(#proof-dots-${diagonal})`} />
       <circle cx="320" cy="320" r="247" className="circumcircle" />
-      {triangles.map((triangle) => <polygon key={triangle.label}
+      {visibleTriangles.map((triangle) => <polygon key={triangle.label} data-testid="proof-triangle-shading"
         points={triangle.indices.map((index) => { const p = screen(points[index]); return `${p.x},${p.y}` }).join(' ')}
         fill={RADIUS_COLORS[triangle.radiusIndex - 1]}
         fillOpacity={active && triangle.terms.some((term) => term.key === active) ? 0.2 : 0.055} />)}
@@ -130,7 +137,7 @@ function ProofDiagram({ diagonal, points, triangles, boundary, step, layers, act
         <line x1="320" y1="320" x2={screen(points[0]).x} y2={screen(points[0]).y} stroke="#487d82" strokeWidth="2" />
         <text x={(320 + screen(points[0]).x) / 2 + 12} y={(320 + screen(points[0]).y) / 2} fill="#487d82">R</text>
       </g>}
-      {layers.incircles && triangles.map((triangle) => {
+      {layers.incircles && visibleTriangles.map((triangle) => {
         const inner = triangle.geometry.inner
         const center = screen(inner)
         const touch = screen(triangle.terms.find((term) => term.diagonal)!.touch)
@@ -142,7 +149,7 @@ function ProofDiagram({ diagonal, points, triangles, boundary, step, layers, act
           <text x={center.x + 10} y={center.y - 9} fill={color}>r<tspan baselineShift="sub" fontSize="13">{triangle.radiusIndex}</tspan></text>
         </g>
       })}
-      {layers.distances && boundary.map((term) => {
+      {layers.distances && visibleBoundary.map((term) => {
         const foot = screen(term.foot)
         return <g key={term.key} className={`proof-distance${negative(term.value) ? ' negative' : ''}`}
           data-testid="proof-boundary-distance" data-edge={term.key} data-value={term.value}
@@ -155,9 +162,10 @@ function ProofDiagram({ diagonal, points, triangles, boundary, step, layers, act
           </text>
         </g>
       })}
-      {layers.diagonal && <g className={`proof-diagonal-distances${step >= 3 ? ' cancelled' : ''}`}
+      {layers.diagonal && <g className={`proof-diagonal-distances${showCancellation ? ' cancelled' : ''}`}
         data-testid="proof-diagonal-contributions">
-        {triangles.map((triangle, index) => {
+        {visibleTriangles.map((triangle) => {
+          const index = triangles.indexOf(triangle)
           const term = triangle.terms.find((item) => item.diagonal)!
           const foot = screen(term.foot)
           const length = Math.hypot(foot.x - 320, foot.y - 320)
@@ -173,7 +181,7 @@ function ProofDiagram({ diagonal, points, triangles, boundary, step, layers, act
             </text>
           </g>
         })}
-        {step >= 3 && <g className="proof-cancel-mark" stroke="#b65341" strokeWidth="3">
+        {showCancellation && <g className="proof-cancel-mark" stroke="#b65341" strokeWidth="3">
           <line x1={(320 + screen(diagonalTerm.foot).x) / 2 - 9} y1={(320 + screen(diagonalTerm.foot).y) / 2 - 9}
             x2={(320 + screen(diagonalTerm.foot).x) / 2 + 9} y2={(320 + screen(diagonalTerm.foot).y) / 2 + 9} />
           <line x1={(320 + screen(diagonalTerm.foot).x) / 2 - 9} y1={(320 + screen(diagonalTerm.foot).y) / 2 + 9}
@@ -209,6 +217,7 @@ export default function QuadrilateralExplorer() {
   const [points, setPoints] = useState<QuadrilateralPoints>(() => createQuadrilateral(5))
   const [step, setStep] = useState(1)
   const [view, setView] = useState('Both')
+  const [triangleView, setTriangleView] = useState<TriangleView>('Both')
   const [active, setActive] = useState<string | null>(null)
   const [layers, setLayers] = useState({ incircles: true, distances: true, diagonal: true, radius: false })
   const geometry = analyzeQuadrilateral(points)
@@ -226,7 +235,8 @@ export default function QuadrilateralExplorer() {
           <span className="unit-label">COMMON CIRCUMRADIUS <strong>R = 1</strong></span></div>
         <div className={`quadrilateral-diagrams${view !== 'Both' ? ' single' : ''}`}>
           {pairs.filter((pair) => view === 'Both' || view === pair.diagonal).map((pair) =>
-            <ProofDiagram key={pair.diagonal} {...pair} points={points} boundary={geometry.boundary} step={step} layers={layers}
+            <ProofDiagram key={pair.diagonal} {...pair} points={points} boundary={geometry.boundary}
+              triangleView={triangleView} step={step} layers={layers}
               active={active} highlight={setActive} onRestore={setPoints}
               onMove={(index, angle) => setPoints((current) => moveQuadrilateralVertex(current, index, angle))} />)}
         </div>
@@ -254,6 +264,12 @@ export default function QuadrilateralExplorer() {
         <fieldset className="proof-view"><legend>Triangulation view</legend>
           {['AC', 'BD', 'Both'].map((option) => <label key={option}>
             <input type="radio" name="quadrilateral-view" value={option} checked={view === option} onChange={() => setView(option)} />{option}
+          </label>)}
+        </fieldset>
+        <fieldset className="proof-view"><legend>Triangle view</legend>
+          {(['First', 'Second', 'Both'] as const).map((option) => <label key={option}>
+            <input type="radio" name="triangle-view" value={option} checked={triangleView === option}
+              onChange={() => { setTriangleView(option); setActive(null) }} />{option}
           </label>)}
         </fieldset>
         <div className="proof-layer-controls">

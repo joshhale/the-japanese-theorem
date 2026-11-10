@@ -173,12 +173,69 @@ test('links cyclic vertex dragging, keyboard changes, cancellation and reset', a
   expect(await pointsIn(page)).toEqual(original)
 })
 
+test('filters each diagram to the selected triangle without changing geometry, signs or totals', async ({ page }) => {
+  await openProof(page)
+  const triangleView = page.getByRole('group', { name: 'Triangle view', exact: true })
+  const triangulationView = page.getByRole('group', { name: 'Triangulation view', exact: true })
+  await expect(triangleView.getByRole('radio', { name: 'Both', exact: true })).toBeChecked()
+  const originalPoints = await pointsIn(page)
+  const originalSum = await page.getByTestId('proof-sum-AC').textContent()
+  const circles = await page.getByTestId('proof-incircle').locator('circle:first-child').evaluateAll((nodes) =>
+    nodes.map((node) => node.getAttribute('r')))
+  const contributions = await page.getByTestId('proof-diagonal-distance').evaluateAll((nodes) =>
+    nodes.map((node) => node.getAttribute('data-value')))
+  for (const [view, index] of [['First', 0], ['Second', 1]] as const) {
+    await triangleView.getByRole('radio', { name: view, exact: true }).check()
+    for (const [diagonal, pair] of [['AC', 0], ['BD', 1]] as const) {
+      const diagram = page.getByTestId(`proof-${diagonal}`)
+      await expect(diagram.getByTestId('proof-incircle')).toHaveCount(1)
+      await expect(diagram.getByTestId('proof-triangle-shading')).toHaveCount(1)
+      await expect(diagram.getByTestId('proof-incircle').locator('circle').first()).toHaveAttribute('r', circles[pair * 2 + index]!)
+      const distance = diagram.getByTestId('proof-diagonal-distance')
+      await expect(distance).toHaveCount(1)
+      await expect(distance).toHaveAttribute('data-value', contributions[pair * 2 + index]!)
+      await expect(distance.locator('text')).toHaveText(index === 0 ? '+δ' : '−δ')
+      const edges = await diagram.getByTestId('proof-boundary-distance').evaluateAll((nodes) =>
+        nodes.map((node) => node.getAttribute('data-edge')).sort())
+      const firstEdges = diagonal === 'AC' ? ['0-1', '1-2'] : ['0-1', '0-3']
+      const secondEdges = diagonal === 'AC' ? ['0-3', '2-3'] : ['1-2', '2-3']
+      expect(edges).toEqual(index === 0 ? firstEdges : secondEdges)
+    }
+    expect(await pointsIn(page)).toEqual(originalPoints)
+    await expect(page.getByTestId('proof-sum-AC')).toHaveText(originalSum!)
+    await expect(page.locator('.proof-triangle-name')).toHaveCount(4)
+    await expectActualSums(page)
+  }
+  await page.getByRole('button', { name: '3 Cancel the diagonal' }).click()
+  await expect(page.locator('.proof-cancel-mark')).toHaveCount(0)
+  await expect(page.locator('.proof-diagonal-distances.cancelled')).toHaveCount(0)
+  await page.getByRole('button', { name: 'Boundary distances', exact: true }).click()
+  await expect(page.getByTestId('proof-boundary-distance')).toHaveCount(0)
+  await page.getByRole('button', { name: 'Boundary distances', exact: true }).click()
+  await expect(page.getByTestId('proof-boundary-distance')).toHaveCount(4)
+  for (const diagonal of ['AC', 'BD', 'Both']) {
+    await triangulationView.getByRole('radio', { name: diagonal, exact: true }).check()
+    await expect(triangleView.getByRole('radio', { name: 'Second', exact: true })).toBeChecked()
+    await expect(page.getByTestId('proof-incircle')).toHaveCount(diagonal === 'Both' ? 2 : 1)
+  }
+  await page.getByRole('slider', { name: 'Quadrilateral seed' }).fill('6')
+  await expect(page.getByTestId('proof-incircle')).toHaveCount(2)
+  await expectActualSums(page)
+  await triangleView.getByRole('radio', { name: 'Both', exact: true }).check()
+  await expect(page.getByTestId('proof-incircle')).toHaveCount(4)
+  await expect(page.getByTestId('proof-boundary-distance')).toHaveCount(8)
+  await expect(page.getByTestId('proof-diagonal-distance')).toHaveCount(4)
+  await expect(page.locator('.proof-cancel-mark')).toHaveCount(2)
+})
+
 test('keeps the proof usable on mobile without horizontal overflow or browser errors', async ({ page }, testInfo) => {
   const errors: string[] = []
   page.on('pageerror', (error) => errors.push(error.message))
   await page.setViewportSize({ width: 390, height: 844 })
   await openProof(page)
   await page.getByRole('button', { name: '4 Compare the sums' }).click()
+  await page.getByRole('group', { name: 'Triangle view', exact: true }).getByRole('radio', { name: 'First', exact: true }).check()
+  await expect(page.getByTestId('proof-incircle')).toHaveCount(2)
   await expectActualSums(page)
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390)
   await page.getByRole('radio', { name: 'AC', exact: true }).check()
