@@ -289,7 +289,7 @@ test('expands nine terms and highlights their groups only while hovered', async 
     await expectActualTotals(page)
   }
   await expect(page.getByTestId('carnot-collected-groups')).toContainText('r(a + b + c)')
-  await expect(page.getByTestId('carnot-collected-sum')).toContainText('(a + b + c)R')
+  await expect(page.getByTestId('carnot-collected-sum')).toHaveCount(0)
   await expect(page.getByTestId('carnot-factored-equality')).toContainText('(a + b + c)(r + R)')
   await expect(page.getByTestId('carnot-final-identity')).toContainText('= r + R')
 })

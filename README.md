@@ -125,7 +125,7 @@ with an interactive nine-term expansion of the final addition.
    Hover over any term to highlight its collection: the three diagonal
    terms give `r(a + b + c)` by Step 4, while the other six pair up through
    Step 3 to give `aR`, `bR`, and `cR`. Moving the pointer away restores all terms.
-   Collect these into `(a + b + c)r + (a + b + c)R`, then factor out and
+   Collect these into `r(a + b + c) + aR + bR + cR`, then factor out and
    cancel the positive perimeter to conclude `d_a + d_b + d_c = r + R`.
 
 Choose 25 seeds or explicit acute, right, and obtuse examples. Drag vertices

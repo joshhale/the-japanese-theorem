@@ -452,9 +452,6 @@ export default function CarnotProofExplorer() {
             = <span className="carnot-r-color">r(a + b + c)</span>
             {geometry.sides.map((_, index) => <span key={index}> + <span style={{ color: COLORS[index] }}>{'abc'[index]}R</span></span>)}
           </div>
-          <div className="carnot-main-equation" data-testid="carnot-collected-sum">
-            = <span className="carnot-r-color">(a + b + c)r</span> + <span className="carnot-R-color">(a + b + c)R</span>
-          </div>
           <div className="carnot-proof-conclusion" data-testid="carnot-proof-conclusion">
             <div className="carnot-main-equation" data-testid="carnot-factored-equality">
               <span>(a + b + c)(<D index={0} /> + <D index={1} /> + <D index={2} />)</span>
