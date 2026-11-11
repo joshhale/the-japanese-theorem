@@ -21,6 +21,13 @@ triangulations and actual incircles. Click either drawing, or use Enter or
 Space, to change just its triangulation. No labels or controls are drawn over
 the geometry. The button `丸山良寛の定理` returns to tab 01.
 
+Click the blank area between the polygons and the bottom button to toggle two
+rows of incircle copies. The top row comes from the left drawing, largest first;
+the bottom row comes from the right drawing, smallest first. Their horizontal
+diameters touch end to end. The circles use the same scale as the diagrams,
+and both rows update when either drawing is retriangulated. There are no
+labels, baselines, or adjusted totals.
+
 The notebook navigation is hidden in this view. Switching tabs preserves the
 drawings; changing the polygon's vertex count or placement seed resets them.
 Changing only tab 01's triangulation does not affect the presentation.

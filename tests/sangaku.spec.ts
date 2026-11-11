@@ -45,7 +45,7 @@ test('shares the configured polygon and provides a white, monochrome presentatio
   await openSangaku(page)
   await expect(page.getByRole('tablist')).toHaveCount(0)
   await expect(page.getByRole('slider')).toHaveCount(0)
-  await expect(page.getByRole('button')).toHaveCount(3)
+  await expect(page.getByRole('button')).toHaveCount(4)
   await expect(page.locator('.app-shell')).toHaveCSS('background-color', 'rgb(255, 255, 255)')
   for (const name of ['left', 'right']) {
     const drawing = page.getByRole('button', { name: `Retriangulate ${name} polygon`, exact: true })
@@ -136,11 +136,85 @@ test('supports keyboard entry, independent keyboard retriangulation, and return 
   await left.press('Tab')
   await expect(right).toBeFocused()
   await right.press('Tab')
+  const lineup = page.getByRole('button', { name: 'Toggle incircle line-up', exact: true })
+  await expect(lineup).toBeFocused()
+  await lineup.press('Enter')
+  await expect(lineup).toHaveAttribute('aria-pressed', 'true')
+  await lineup.press('Space')
+  await expect(lineup).toHaveAttribute('aria-pressed', 'false')
+  await lineup.press('Tab')
   const explore = page.getByRole('button', { name: '丸山良寛の定理', exact: true })
   await expect(explore).toBeFocused()
   await explore.press('Enter')
   await expect(theorem).toBeFocused()
   await expect(theorem).toHaveAttribute('aria-selected', 'true')
+})
+
+test('toggles bare, diameter-adjacent rows of exact incircle copies and updates them after retriangulation', async ({ page }, testInfo) => {
+  await page.goto('/')
+  await openSangaku(page)
+  const toggle = page.getByRole('button', { name: 'Toggle incircle line-up', exact: true })
+  const drawings = ['left', 'right'].map((side) =>
+    page.getByRole('button', { name: `Retriangulate ${side} polygon`, exact: true }))
+  const originalEdges = await Promise.all(drawings.map(diagonalKeys))
+  const originalBounds = await drawings[0].boundingBox()
+  await expect(toggle).toHaveAttribute('aria-pressed', 'false')
+  await expect(toggle.locator('svg')).toHaveCount(0)
+  await expect(toggle).toHaveCSS('border-width', '0px')
+  await toggle.click()
+  await expect(toggle).toHaveAttribute('aria-pressed', 'true')
+  await expect(toggle.locator('svg *:not(g):not(circle)')).toHaveCount(0)
+  expect(await drawings[0].boundingBox()).toEqual(originalBounds)
+  expect(await Promise.all(drawings.map(diagonalKeys))).toEqual(originalEdges)
+
+  for (let turn = 0; turn < 5; turn++) {
+    if (turn > 0) {
+      const drawing = drawings[turn % 2]
+      const previous = await diagonalKeys(drawing)
+      await drawing.click()
+      await expect.poll(() => diagonalKeys(drawing)).not.toEqual(previous)
+      await expect(toggle).toHaveAttribute('aria-pressed', 'true')
+    }
+    const geometry = await page.locator('.sangaku-comparison').evaluate((root) => {
+      const readCircle = (circle: Element) => {
+        const bounds = circle.getBoundingClientRect()
+        return { x: bounds.x + bounds.width / 2, y: bounds.y + bounds.height / 2,
+          radius: bounds.width / 2, sourceRadius: Number(circle.getAttribute('r')),
+          triangle: circle.getAttribute('data-triangle') }
+      }
+      return {
+        originals: [...root.querySelectorAll('.sangaku-diagram')].map((drawing) =>
+          [...drawing.querySelectorAll('[data-testid="sangaku-incircle"]')].map(readCircle)),
+        rows: [...root.querySelectorAll('.sangaku-lineup-toggle g')].map((row) =>
+          [...row.querySelectorAll('circle')].map(readCircle)),
+      }
+    })
+    expect(geometry.rows).toHaveLength(2)
+    geometry.rows.forEach((row, index) => {
+      const expected = [...geometry.originals[index]].sort((a, b) =>
+        index === 0 ? b.radius - a.radius : a.radius - b.radius)
+      expect(row.map((circle) => circle.triangle)).toEqual(expected.map((circle) => circle.triangle))
+      row.forEach((circle, position) => {
+        expect(circle.sourceRadius).toBeCloseTo(expected[position].sourceRadius, 12)
+        // Separate SVG viewports can round their dimensions to different subpixels.
+        expect(circle.radius).toBeCloseTo(expected[position].radius, 2)
+        expect(circle.y).toBeCloseTo(row[0].y, 3)
+        if (position > 0) {
+          expect(circle.x - circle.radius).toBeCloseTo(row[position - 1].x + row[position - 1].radius, 3)
+        }
+      })
+    })
+    const [top, bottom] = geometry.rows
+    expect(top[0].x - top[0].radius).toBeCloseTo(bottom[0].x - bottom[0].radius, 3)
+    expect(top.at(-1)!.x + top.at(-1)!.radius).toBeCloseTo(bottom.at(-1)!.x + bottom.at(-1)!.radius, 3)
+    expect(Math.max(...top.map((circle) => circle.y + circle.radius)))
+      .toBeLessThan(Math.min(...bottom.map((circle) => circle.y - circle.radius)))
+  }
+  await page.screenshot({ path: testInfo.outputPath('sangaku-lineup-desktop.png'), fullPage: true })
+  const finalEdges = await Promise.all(drawings.map(diagonalKeys))
+  await toggle.click()
+  await expect(toggle.locator('svg')).toHaveCount(0)
+  expect(await Promise.all(drawings.map(diagonalKeys))).toEqual(finalEdges)
 })
 
 test('handles triangles, quadrilaterals, and the maximum polygon at phone width', async ({ page }, testInfo) => {
@@ -161,6 +235,8 @@ test('handles triangles, quadrilaterals, and the maximum polygon at phone width'
   await expect(left).toBeDisabled()
   await expect(right).toBeDisabled()
   await expect(page.getByTestId('sangaku-incircle')).toHaveCount(2)
+  await page.getByRole('button', { name: 'Toggle incircle line-up', exact: true }).click()
+  await expect(page.getByTestId('sangaku-lineup-circle')).toHaveCount(2)
   await page.getByRole('button', { name: '丸山良寛の定理', exact: true }).click()
   await page.setViewportSize({ width: 390, height: 844 })
   await page.getByRole('slider', { name: 'Vertices', exact: true }).fill('40')
@@ -168,14 +244,23 @@ test('handles triangles, quadrilaterals, and the maximum polygon at phone width'
   await openSangaku(page)
   await expect(page.getByTestId('sangaku-incircle')).toHaveCount(76)
   await expect(left).toBeEnabled()
-  const a = await left.boundingBox()
-  const b = await right.boundingBox()
+  const a = await left.getByTestId('sangaku-circumcircle').boundingBox()
+  const b = await right.getByTestId('sangaku-circumcircle').boundingBox()
   const button = await page.getByRole('button', { name: '丸山良寛の定理', exact: true }).boundingBox()
   if (!a || !b || !button) throw new Error('Presentation controls must be visible')
   expect(a.x + a.width).toBeLessThan(b.x)
   expect(a.y).toBeCloseTo(b.y, 3)
   expect(button.y + button.height).toBeLessThanOrEqual(844)
   expect(button.y + button.height).toBeGreaterThan(784)
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390)
+  const toggle = page.getByRole('button', { name: 'Toggle incircle line-up', exact: true })
+  await expect(toggle).toHaveAttribute('aria-pressed', 'false')
+  await toggle.click()
+  await expect(page.getByTestId('sangaku-lineup-circle')).toHaveCount(76)
+  const rowBounds = await toggle.boundingBox()
+  if (!rowBounds) throw new Error('Circle line-up must be visible')
+  expect(rowBounds.y).toBeGreaterThan(a.y + a.height)
+  expect(rowBounds.y + rowBounds.height).toBeLessThan(button.y)
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBeLessThanOrEqual(390)
   await page.screenshot({ path: testInfo.outputPath('sangaku-phone.png'), fullPage: true })
 })
