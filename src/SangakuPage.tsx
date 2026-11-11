@@ -44,8 +44,8 @@ export default function SangakuPage({ vertices, onExplore }: {
         disabled={options.length === 1} onClick={() => handleRandomize(index, Math.random())}>
         <svg viewBox="0 0 640 640" role="img" aria-label={`${index === 0 ? 'Left' : 'Right'} cyclic polygon with incircles`}>
           <g fill="none" stroke="#000" strokeLinejoin="round">
-            <circle data-testid="sangaku-circumcircle" cx={CENTER} cy={CENTER} r={RADIUS} strokeWidth="1.8" />
-            <polygon data-testid="sangaku-polygon" strokeWidth="1.5"
+            <circle data-testid="sangaku-circumcircle" cx={CENTER} cy={CENTER} r={RADIUS} strokeWidth="3.6" />
+            <polygon data-testid="sangaku-polygon" strokeWidth="3"
               points={vertices.map((vertex) => { const p = screen(vertex); return `${p.x},${p.y}` }).join(' ')} />
             {triangleEdges(drawing.triangles).filter((edge) => !isBoundary(edge, vertices.length)).map((edge) => {
               const a = screen(vertices[edge[0]])
