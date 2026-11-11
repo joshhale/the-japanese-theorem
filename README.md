@@ -157,6 +157,28 @@ can be toggled. Hover over a term to find its base and height in the diagram.
 Signs are preserved in all computations. The final segment comparison reuses
 the second tab's construction with independently calculated totals.
 
+## 05 Angle at the center
+
+Explore `angle AOB = 2 angle ACB` with three draggable points on a circle.
+The highlighted arc AB always excludes C. Its central angle is measured from
+the arc, independently of the angle measured between CA and CB; reflex angles
+are not replaced with the smaller angle between the radii.
+
+Choose 25 seeds or examples for a minor arc, a semicircle, a reflex angle,
+and the subtraction case. Arrow keys move a focused vertex, Shift moves
+faster, and Escape restores a cancelled drag. Switching tabs preserves
+the points, selected example, triangle focus, and proof stage.
+
+The four stages compare the angles, extend CO to the opposite point D,
+use the equal radii of triangles OCA and OCB to double each base angle,
+then add or subtract the resulting pieces. The exterior angle at O is twice
+the base angle in each isosceles triangle. If CD is outside angle ACB,
+the proof subtracts the smaller piece rather than adding them. If D
+coincides with A or B, that piece is zero, not a nondegenerate triangle.
+
+The proof uses the isosceles-triangle construction described in
+[AMSI's circle geometry module](https://www.amsi.org.au/teacher_modules/Circle_Geometry.html).
+
 ## Validate
 
 ```sh
@@ -176,4 +198,6 @@ Carnot identity for acute, right, and obtuse triangles in both orientations.
 Quadrilateral tests cover signed diagonal cancellation, external circumcenters,
 cyclic vertex movement, proof steps, linked highlighting, and independent totals.
 Carnot-proof tests verify every intermediate projection and area identity, signed
-nine-term grouping, right and obtuse examples, movement, and four-tab navigation.
+nine-term grouping, right and obtuse examples, movement, and notebook navigation.
+Central-angle tests check independently measured angles, the intercepted SVG arcs,
+reflex and subtraction cases, zero pieces, drag cancellation, and six-tab navigation.

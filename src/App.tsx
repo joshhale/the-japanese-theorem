@@ -9,6 +9,7 @@ import TriangleExplorer from './TriangleExplorer'
 import QuadrilateralExplorer from './QuadrilateralExplorer'
 import CarnotProofExplorer from './CarnotProofExplorer'
 import SangakuPage from './SangakuPage'
+import CentralAngleExplorer from './CentralAngleExplorer'
 import './App.css'
 
 const COLORS = ['#d47352', '#487d82', '#9c8644', '#8476a5', '#64815c', '#af6384']
@@ -326,7 +327,7 @@ function App() {
   const tabRefs = useRef<(HTMLButtonElement | null)[]>([])
   const sangakuPanel = useRef<HTMLElement>(null)
   const previousTab = useRef(activeTab)
-  const tabs = ['算額', 'Japanese Theorem', "Carnot's Theorem", 'Quadrilateral proof', 'Carnot proof']
+  const tabs = ['算額', 'Japanese Theorem', "Carnot's Theorem", 'Quadrilateral proof', 'Carnot proof', 'Angle at the center']
   useEffect(() => {
     if (activeTab === 0) sangakuPanel.current?.focus({ preventScroll: true })
     else if (previousTab.current === 0) tabRefs.current[activeTab]?.focus()
@@ -360,6 +361,7 @@ function App() {
     <section id="panel-2" role="tabpanel" aria-labelledby="tab-2" hidden={activeTab !== 2}><TriangleExplorer /></section>
     <section id="panel-3" role="tabpanel" aria-labelledby="tab-3" hidden={activeTab !== 3}><QuadrilateralExplorer /></section>
     <section id="panel-4" role="tabpanel" aria-labelledby="tab-4" hidden={activeTab !== 4}><CarnotProofExplorer /></section>
+    <section id="panel-5" role="tabpanel" aria-labelledby="tab-5" hidden={activeTab !== 5}><CentralAngleExplorer /></section>
   </main></div>
 }
 

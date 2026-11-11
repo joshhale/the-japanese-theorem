@@ -1,0 +1,18 @@
+.central-angle-diagram { display: block; max-width: 680px; margin: auto; }
+.central-angle-diagram text { font: 17px Georgia, serif; paint-order: stroke; stroke: #fdfcf8; stroke-width: 3px; stroke-linejoin: round; }
+.central-angle-diagram .vertex-label { text-anchor: middle; dominant-baseline: middle; }
+.central-angle-presets { display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 20px; }
+.central-angle-presets button { border: 1px solid var(--border); border-radius: 5px; background: transparent; padding: 8px 11px; font-size: 11px; color: var(--muted); cursor: pointer; }
+.central-angle-presets button[aria-pressed='true'] { background: #e6eddf; border-color: #9fb29c; color: #42644c; }
+.central-angle-readout { display: grid; gap: 8px; padding: 18px 0; color: var(--muted); font-size: 11px; }
+.central-angle-readout output { color: var(--ink); font: 23px Georgia, serif; font-variant-numeric: tabular-nums; margin-bottom: 12px; }
+.central-angle-proof { background: #f6f7f0; }
+.central-angle-explanation { padding: 24px; }
+.central-angle-explanation p { max-width: 850px; margin: 14px auto; font-size: 13px; line-height: 1.8; color: #6d7b67; }
+.central-angle-equation { display: flex; justify-content: center; flex-wrap: wrap; text-align: center; margin: 15px 0; font: 25px/1.8 Georgia, serif; overflow-wrap: anywhere; }
+.central-angle-numbers { color: #4c6c54; font-size: 22px; font-variant-numeric: tabular-nums; }
+@media (max-width: 740px) {
+  .central-angle-explanation { padding: 18px; }
+  .central-angle-equation { font-size: 20px; }
+  .central-angle-numbers { font-size: 18px; }
+}
