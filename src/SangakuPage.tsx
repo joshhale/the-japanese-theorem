@@ -39,6 +39,13 @@ export default function SangakuPage({ vertices, onExplore }: {
   })
   const lineupStart = (1280 - Math.max(...circles.map((drawingCircles) =>
     drawingCircles.reduce((sum, circle) => sum + 2 * circle.radius * RADIUS, 0)))) / 2
+  // Only increase the row separation where circles overlap horizontally.
+  const rowGap = Math.max(228, ...rows[0].flatMap((top) => rows[1].map((bottom) => {
+    const radii = top.radius + bottom.radius
+    const dx = top.x - bottom.x
+    return Math.sqrt(Math.max(0, radii * radii - dx * dx)) + 12
+  })))
+  const lineupHeight = 302 + rowGap
 
   function handleRandomize(index: number, random: number) {
     setDrawings((current) => {
@@ -80,13 +87,14 @@ export default function SangakuPage({ vertices, onExplore }: {
         </button>)}
       </div>
       <button className="sangaku-lineup-toggle" aria-label="Toggle incircle line-up"
+        style={{ aspectRatio: `1280 / ${lineupHeight}` }}
         aria-pressed={showLineup} onClick={() => setShowLineup((visible) => !visible)}>
-        {showLineup && <svg viewBox="0 0 1280 604" role="img" aria-label="Incircle line-ups">
+        {showLineup && <svg viewBox={`0 0 1280 ${lineupHeight}`} role="img" aria-label="Incircle line-ups">
           {rows.map((row, index) => <g key={index} data-testid={`sangaku-lineup-${index === 0 ? 'left' : 'right'}`}
             fill="none" stroke="#000" strokeWidth="1.2">
             {row.map((circle) => <circle key={circle.triangle.join('-')} data-testid="sangaku-lineup-circle"
               data-triangle={circle.triangle.join('-')} cx={lineupStart + circle.x}
-              cy={index === 0 ? 151 : 453} r={circle.radius} />)}
+              cy={151 + index * rowGap} r={circle.radius} />)}
           </g>)}
         </svg>}
       </button>

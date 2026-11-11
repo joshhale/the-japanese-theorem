@@ -158,6 +158,11 @@ test('toggles bare, diameter-adjacent rows of exact incircle copies and updates 
     page.getByRole('button', { name: `Retriangulate ${side} polygon`, exact: true }))
   const originalEdges = await Promise.all(drawings.map(diagonalKeys))
   const originalBounds = await drawings[0].boundingBox()
+  const viewport = page.viewportSize()
+  if (!originalBounds || !viewport) throw new Error('Expected a visible diagram and viewport')
+  const centerY = originalBounds.y + originalBounds.height / 2
+  expect(centerY).toBeGreaterThan(viewport.height * 0.3)
+  expect(centerY).toBeLessThan(viewport.height * 0.5)
   await expect(toggle).toHaveAttribute('aria-pressed', 'false')
   await expect(toggle.locator('svg')).toHaveCount(0)
   await expect(toggle).toHaveCSS('border-width', '0px')
@@ -207,8 +212,11 @@ test('toggles bare, diameter-adjacent rows of exact incircle copies and updates 
     const [top, bottom] = geometry.rows
     expect(top[0].x - top[0].radius).toBeCloseTo(bottom[0].x - bottom[0].radius, 3)
     expect(top.at(-1)!.x + top.at(-1)!.radius).toBeCloseTo(bottom.at(-1)!.x + bottom.at(-1)!.radius, 3)
-    expect(Math.max(...top.map((circle) => circle.y + circle.radius)))
-      .toBeLessThan(Math.min(...bottom.map((circle) => circle.y - circle.radius)))
+    for (const a of top) {
+      for (const b of bottom) {
+        expect(Math.hypot(a.x - b.x, a.y - b.y)).toBeGreaterThan(a.radius + b.radius)
+      }
+    }
   }
   await page.screenshot({ path: testInfo.outputPath('sangaku-lineup-desktop.png'), fullPage: true })
   const finalEdges = await Promise.all(drawings.map(diagonalKeys))
@@ -231,12 +239,17 @@ test('handles triangles, quadrilaterals, and the maximum polygon at phone width'
   expect(await diagonalKeys(right)).toEqual(originalRight)
   await page.getByRole('button', { name: '丸山良寛の定理', exact: true }).click()
   await page.getByRole('slider', { name: 'Vertices', exact: true }).fill('3')
+  await page.getByRole('slider', { name: 'Vertex placement', exact: true }).fill('14')
   await openSangaku(page)
   await expect(left).toBeDisabled()
   await expect(right).toBeDisabled()
   await expect(page.getByTestId('sangaku-incircle')).toHaveCount(2)
   await page.getByRole('button', { name: 'Toggle incircle line-up', exact: true }).click()
   await expect(page.getByTestId('sangaku-lineup-circle')).toHaveCount(2)
+  const topCircle = await page.getByTestId('sangaku-lineup-left').locator('circle').boundingBox()
+  const bottomCircle = await page.getByTestId('sangaku-lineup-right').locator('circle').boundingBox()
+  if (!topCircle || !bottomCircle) throw new Error('Expected both triangle incircle copies')
+  expect(topCircle.y + topCircle.height).toBeLessThan(bottomCircle.y)
   await page.getByRole('button', { name: '丸山良寛の定理', exact: true }).click()
   await page.setViewportSize({ width: 390, height: 844 })
   await page.getByRole('slider', { name: 'Vertices', exact: true }).fill('40')

@@ -466,7 +466,6 @@ export default function CarnotProofExplorer() {
           </div>
         </>}
       </div>
-      <div className="carnot-proof-source">Proof approach: <a href="https://www.cut-the-knot.org/proofs/carnot.shtml" target="_blank" rel="noreferrer">Alexander Bogomolny, Carnot’s Theorem, Proof 1</a>. The expansion uses the same projection-and-area argument.</div>
     </section>
   </>
 }

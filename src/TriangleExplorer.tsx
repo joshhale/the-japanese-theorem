@@ -190,7 +190,6 @@ function TriangleExplorer() {
         <section className="drawing-card" aria-label="Interactive triangle">
           <div className="drawing-header">
             <span className="diagram-title">Triangle <strong>ABC</strong></span>
-            <span className="unit-label">LENGTHS IN <strong>diagram units</strong></span>
           </div>
           <svg ref={svgRef} viewBox={`${view.x} ${view.y} ${view.size} ${view.size}`} className="triangle-diagram"
             aria-label="Triangle with draggable vertices A, B, and C"

@@ -139,7 +139,6 @@ function PolygonExplorer({ configuration, vertices, onConfigurationChange }: {
         <div className="exploration-layout">
           <section className="drawing-card" aria-label="Interactive cyclic polygon">
             <div className="drawing-header">
-              <span className="diagram-title">A circle. <strong>{count} vertices.</strong> Endless possibilities.</span>
               <span className="unit-label">CIRCUMRADIUS <strong>R = 1</strong></span>
             </div>
             <div className="svg-container">
