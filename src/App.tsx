@@ -57,6 +57,7 @@ function PolygonExplorer({ configuration, vertices, onConfigurationChange }: {
   const [message, setMessage] = useState('Try another triangulation. Watch the sum stay put.')
   const svgRef = useRef<SVGSVGElement>(null)
 
+  const polygonName = count <= 4 ? 'ABCD'.slice(0, count) : `AB...${vertexName(count - 2)}${vertexName(count - 1)}`
   const circles = triangles.map((triangle) => incircle(vertices, triangle))
   const edges = triangleEdges(triangles).filter((edge) => !isBoundary(edge, count))
   const previewEdge: Edge | null = drag && drag.target !== null && drag.target !== drag.start
@@ -139,6 +140,7 @@ function PolygonExplorer({ configuration, vertices, onConfigurationChange }: {
         <div className="exploration-layout">
           <section className="drawing-card" aria-label="Interactive cyclic polygon">
             <div className="drawing-header">
+              <span className="diagram-title">Cyclic polygon <strong>{polygonName}</strong></span>
               <span className="unit-label">CIRCUMRADIUS <strong>R = 1</strong></span>
             </div>
             <div className="svg-container">
