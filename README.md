@@ -67,13 +67,13 @@ That proves the quadrilateral case and, through the fan argument, the full Japan
 
 Collect three small facts rather than trying to remember the whole proof at once.
 
-First, the central-angle construction gives a right triangle with angle A, hypotenuse R, and adjacent side dₐ. Therefore **cos A = dₐ/R**.
+First, the central-angle construction gives a right triangle with angle A, hypotenuse R, and adjacent side d_a. Therefore **cos A = d_a/R**.
 
-Next, drop an altitude onto side a. Its two projections give **a = c cos B + b cos C**. Substitute the cosine identities to obtain **aR = cdᵦ + bd꜀**, and repeat for the other sides.
+Next, drop an altitude onto side a. Its two projections give **a = c cos B + b cos C**. Substitute the cosine identities to obtain **aR = c d_b + b d_c**, and repeat for the other sides.
 
-Finally, measure the triangle's area twice: using O and the signed distances, then using the incenter and height r. This gives **adₐ + bdᵦ + cd꜀ = (a+b+c)r**.
+Finally, measure the triangle's area twice: using O and the signed distances, then using the incenter and height r. This gives **a d_a + b d_b + c d_c = (a+b+c)r**.
 
-In Step 5, expand **(a+b+c)(dₐ+dᵦ+d꜀)**. Hover over the nine terms: three collect into the area identity, and the other six pair into aR, bR, and cR. Factor and cancel the perimeter to conclude **dₐ+dᵦ+d꜀ = r+R**.
+In Step 5, expand **(a+b+c)(d_a + d_b + d_c)**. Hover over the nine terms: three collect into the area identity, and the other six pair into aR, bR, and cR. Factor and cancel the perimeter to conclude **d_a + d_b + d_c = r+R**.
 
 ### 05 Angle at the center
 
