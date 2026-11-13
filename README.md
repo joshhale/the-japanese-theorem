@@ -1,8 +1,8 @@
 # The Japanese Theorem
 
-A browser-based geometry notebook built with React, TypeScript, Vite, and SVG.
-The first exploration demonstrates the invariant sum of triangle inradii in a
-fixed convex cyclic polygon.
+A browser-based geometry workbook for exploring the beautiful [Japanese Theorem for cyclic polygons](https://en.wikipedia.org/wiki/Japanese_theorem_for_cyclic_polygons), and understanding its proof from basic trigonometry.
+
+It's built using React, TypeScript, Vite, and SVG.
 
 ## Run locally
 
@@ -12,172 +12,6 @@ Requires Node.js 22.12 or newer.
 npm ci
 npm run dev
 ```
-
-## 00 算額
-
-A white, monochrome presentation view with two copies of the polygon currently
-configured in tab 01. Both use the same vertex data, with independent
-triangulations and actual incircles. Click either drawing, or use Enter or
-Space, to change just its triangulation. No labels or controls are drawn over
-the geometry. The button `丸山良寛の定理` returns to tab 01.
-
-Click the blank area between the polygons and the bottom button to toggle two
-rows of incircle copies. The top row comes from the left drawing, largest first;
-the bottom row comes from the right drawing, smallest first. Their horizontal
-diameters touch end to end. The circles use the same scale as the diagrams,
-and both rows update when either drawing is retriangulated. There are no
-labels, baselines, or adjusted totals.
-
-The notebook navigation is hidden in this view. Switching tabs preserves the
-drawings; changing the polygon's vertex count or placement seed resets them.
-Changing only tab 01's triangulation does not affect the presentation.
-Drawings use distinct triangulations whenever possible. A triangle has only
-one, so its drawing buttons are disabled; a quadrilateral has only two, so
-independently changing one drawing can make the two match.
-
-## Japanese Theorem tab
-
-- Choose 3 to 40 vertices and one of 25 deterministic seeds for vertex placement
-  and triangulation.
-- Show or hide incircles. Hover or focus a summand to highlight its triangle.
-- Use the Fan vertex slider below Triangulation to shade triangles containing
-  the chosen vertex and highlight that vertex. `0` turns shading off. This does
-  not change any edges or radii. The choice persists across seed changes;
-  reducing the vertex count past the selected vertex turns shading off.
-- Drag between nonadjacent vertices to force a diagonal. Only existing edges
-  crossing it are removed, whether forced or random. All compatible edges stay,
-  and untouched triangles keep their colors and radius labels.
-- While dragging over a possible endpoint, an orange translucent overlay shows
-  exactly which triangles would change. Moving away or cancelling clears the
-  preview; the construction changes only on release.
-- Unlock individual diagonals using their chips or clear all locks. Unlocking
-  does not redraw the triangulation; changing a seed generates a fresh one.
-- Keyboard alternative: Tab to a vertex, press Enter or Space, then repeat at
-  the other endpoint. Escape cancels the selection.
-- Changing either seed or the vertex count clears forced diagonals.
-
-All lengths are in units of the circumradius, R = 1. Every render calculates
-each triangle's actual incenter and inradius from its side lengths and area,
-then sums those radii. The displayed total is never substituted with an
-invariant or a cached result. A separate fan triangulation provides a numerical
-cross-check. Individual terms are rounded to four decimals and the total to six;
-more than 20 terms are abbreviated to the first and last nine.
-
-Changing the vertex placement changes the polygon and can change the total.
-Changing only its triangulation preserves the total. Seeds need not give unique
-triangulations, especially for polygons with few vertices.
-
-## Carnot's Theorem tab
-
-The second tab starts with three seeded points, not a prescribed circle. Drag
-vertices A, B, and C freely, or focus a vertex and use arrow keys (Shift for
-larger steps). All tabs retain their state when switching.
-
-Toggle the circumcircle, incircle, perpendicular side bisectors, angle bisectors,
-centers, radius segments, and Carnot distances independently. Perpendicular
-bisectors meet at the circumcenter O; internal angle bisectors meet at the
-incenter I. Bottom readouts calculate the circumradius R and inradius r live,
-in diagram units (100 drawing-coordinate units = 1 displayed unit).
-
-Carnot distances are signed perpendicular distances from O to the side lines.
-They are negative when O and the opposite vertex are on different sides of the
-line. The optional panel computes their sum independently of R + r, including
-obtuse triangles. This is a construction aid, not a scripted proof walkthrough.
-The Carnot panel also compares R + r with the signed distance sum as head-to-tail
-segments on a common scale. Negative distances point left; staggered tracks
-keep backtracking visible, and vertical connectors have no length contribution.
-This comparison is shown even when radius segments in the main diagram are off.
-
-Collinear or overlapping vertices show an explicit message and unavailable
-radius readouts rather than invalid circles. Fit circles adjusts the square
-view without moving the vertices or changing any lengths. Reset triangle
-restores the selected seed and the original view.
-
-## Quadrilateral proof tab
-
-Compare diagonals AC and BD of the same cyclic quadrilateral, side by side or
-individually. Choose one of 25 seeds, or drag a vertex around the circumcircle.
-Vertices cannot cross their neighbors. Arrow keys move a focused vertex;
-Shift moves faster, and Escape restores a cancelled drag.
-
-The four proof steps apply Carnot to each triangle, add each pair of equations,
-cancel the opposite signed diagonal contributions, and compare what remains:
-
-```text
-2R + r_ABC + r_ACD = d_AB + d_AD + d_BC + d_CD
-2R + r_ABD + r_BCD = d_AB + d_AD + d_BC + d_CD
-```
-
-Boundary distances are signed toward the quadrilateral's interior, not taken as
-absolute lengths. This remains valid when the circumcenter lies outside.
-Matching colors link terms to distances in both diagrams; hover or focus a term
-to highlight it. Incircles, boundary distances, diagonal contributions, and the
-circumradius segment can be toggled independently.
-Triangle view selects First, Second, or Both within each visible quadrilateral.
-It filters shading, incircles, and distance annotations, without changing the
-triangulation, proof equations, or computed totals.
-
-The final step compares both actual inradius sums and the independently computed
-boundary-distance sum minus 2R, with radius segments on a common scale. None of
-these totals is substituted for another. All lengths use R = 1.
-
-## Carnot proof tab
-
-The fourth tab proves Carnot's theorem through signed projections and areas.
-It follows the elementary projection-and-area argument in
-[Alexander Bogomolny's Carnot's Theorem, Proof 1](https://www.cut-the-knot.org/proofs/carnot.shtml),
-with an interactive nine-term expansion of the final addition.
-
-1. Halve the central angle: show the angle `2A`, equal radii OB and OC,
-   midpoint M, and perpendicular OM. The two half-angles are A when A is acute,
-   or `180 degrees - A` when A is obtuse. The central arc correctly becomes
-   reflex in the obtuse case.
-2. Isolate right triangle OBM and read
-   `cos A = adjacent / hypotenuse = OM / OB = d_a / R`, with explicit signed
-   and right-angle cases. Unrelated incircles and distances are hidden in
-   these first two constructions.
-3. Project a side: `a = c cos B + b cos C`, hence `aR = c d_b + b d_c`.
-   Each substitution links back to its own cosine construction in Step 2.
-   Change the focus side to obtain all three identities.
-4. Measure the triangle's area using O and I as alternate centers:
-   `a d_a + b d_b + c d_c = 2 area = (a + b + c)r`.
-   Showing the incircle joins I to the vertices, giving three triangles of
-   height r. Hiding it switches the dissection to O and signed distances.
-5. Expand `(a + b + c)(d_a + d_b + d_c)` into a 3-by-3 grid with addition signs.
-   Hover over any term to highlight its collection: the three diagonal
-   terms give `r(a + b + c)` by Step 4, while the other six pair up through
-   Step 3 to give `aR`, `bR`, and `cR`. Moving the pointer away restores all terms.
-   Collect these into `r(a + b + c) + aR + bR + cR`, then factor out and
-   cancel the positive perimeter to conclude `d_a + d_b + d_c = r + R`.
-
-Choose 25 seeds or explicit acute, right, and obtuse examples. Drag vertices
-around the unit circle, or use arrow keys (Shift for larger movements). Escape
-cancels a drag. Incircle, circumcircle, signed distances, and construction lines
-can be toggled. Hover over a term to find its base and height in the diagram.
-Signs are preserved in all computations. The final segment comparison reuses
-the second tab's construction with independently calculated totals.
-
-## 05 Angle at the center
-
-Explore `angle AOB = 2 angle ACB` with three draggable points on a circle.
-The highlighted arc AB always excludes C. Its central angle is measured from
-the arc, independently of the angle measured between CA and CB; reflex angles
-are not replaced with the smaller angle between the radii.
-
-Choose 25 seeds or examples for a minor arc, a semicircle, a reflex angle,
-and the subtraction case. Arrow keys move a focused vertex, Shift moves
-faster, and Escape restores a cancelled drag. Switching tabs preserves
-the points, selected example, triangle focus, and proof stage.
-
-The four stages compare the angles, extend CO to the opposite point D,
-use the equal radii of triangles OCA and OCB to double each base angle,
-then add or subtract the resulting pieces. The exterior angle at O is twice
-the base angle in each isosceles triangle. If CD is outside angle ACB,
-the proof subtracts the smaller piece rather than adding them. If D
-coincides with A or B, that piece is zero, not a nondegenerate triangle.
-
-The proof uses the isosceles-triangle construction described in
-[AMSI's circle geometry module](https://www.amsi.org.au/teacher_modules/Circle_Geometry.html).
 
 ## Validate
 
@@ -189,15 +23,64 @@ npx playwright install chromium
 npm run test:e2e
 ```
 
-Geometry tests cover every supported vertex count and all 625 seed pairs,
-tangency, area coverage, and evolving forced constraints. Browser tests cover
-live totals, drag and keyboard interactions, constraint replacement, resets,
-visibility, limits, mobile layout, and triangle-layer controls. Free-triangle
-tests cover circle construction, bisectors, degeneracy, fitting, and the signed
-Carnot identity for acute, right, and obtuse triangles in both orientations.
-Quadrilateral tests cover signed diagonal cancellation, external circumcenters,
-cyclic vertex movement, proof steps, linked highlighting, and independent totals.
-Carnot-proof tests verify every intermediate projection and area identity, signed
-nine-term grouping, right and obtuse examples, movement, and notebook navigation.
-Central-angle tests check independently measured angles, the intercepted SVG arcs,
-reflex and subtraction cases, zero pieces, drag cancellation, and six-tab navigation.
+## Walkthrough
+
+Start with the theorem, then work backwards through its proof: reduce polygons to quadrilaterals, use Carnot's theorem, prove Carnot, and finally establish the circle-angle fact it relies on.
+
+### 00 算額
+
+Two triangulations of the same cyclic polygon produce different incircles. Click either drawing to rearrange its triangulation, then click underneath to reveal the circles lined up by diameter. Their sizes change, but their total width stays the same.
+
+The Japanese Theorem says precisely this: **for a fixed cyclic polygon, every triangulation has the same sum of incircle radii.**
+
+### 01 Japanese Theorem
+
+Hide the incircles first. Change the vertex count to explore cyclic polygons: polygons whose vertices all lie on a circle. Change the triangulation to divide the same polygon into triangles.
+
+Visit tab 02 to understand incircles, then return and show them. Retriangulate and watch the radius sum remain constant. Each sum is calculated from the current triangles.
+
+To reduce the proof to quadrilaterals, choose a fan vertex and drag diagonals from it until every triangle contains that vertex. Each local diagonal flip replaces the two triangles inside a quadrilateral. You can grow the fan by flipping an edge on its boundary.
+
+Every flip is reversible. If a quadrilateral flip preserves the radius sum, every triangulation has the same sum as the fan. We only need to prove the quadrilateral case.
+
+### 02 Carnot's Theorem
+
+Start with the incircle and angle bisectors. A point on an angle bisector is equally distant from its two sides, so their intersection is the center of a circle touching all three sides.
+
+Next show the circumcircle and perpendicular bisectors. Their intersection is equally distant from all three vertices, giving the circumcenter O.
+
+Show the Carnot distances: perpendicular distances from O to the triangle's sides. Carnot's theorem says their sum is **R + r**, the circumradius plus the inradius. Make the triangle obtuse: O moves outside, and one distance becomes negative. The signed identity still holds.
+
+We will use this result first and prove it afterwards.
+
+### 03 Quadrilateral proof
+
+Compare triangulations AC and BD. Apply Carnot to each triangle in the AC view, then add the equations.
+
+The shared diagonal contributes a distance in one triangle and its negative in the other, so it disappears. What remains is the sum of four boundary distances, equal to **2R plus the two inradii**.
+
+Repeat for BD. The boundary distances and circumradius are unchanged, so the two sums of inradii must be equal.
+
+That proves the quadrilateral case and, through the fan argument, the full Japanese Theorem.
+
+### 04 Carnot proof
+
+Collect three small facts rather than trying to remember the whole proof at once.
+
+First, the central-angle construction gives a right triangle with angle A, hypotenuse R, and adjacent side dₐ. Therefore **cos A = dₐ/R**.
+
+Next, drop an altitude onto side a. Its two projections give **a = c cos B + b cos C**. Substitute the cosine identities to obtain **aR = cdᵦ + bd꜀**, and repeat for the other sides.
+
+Finally, measure the triangle's area twice: using O and the signed distances, then using the incenter and height r. This gives **adₐ + bdᵦ + cd꜀ = (a+b+c)r**.
+
+In Step 5, expand **(a+b+c)(dₐ+dᵦ+d꜀)**. Hover over the nine terms: three collect into the area identity, and the other six pair into aR, bR, and cR. Factor and cancel the perimeter to conclude **dₐ+dᵦ+d꜀ = r+R**.
+
+### 05 Angle at the center
+
+Finish the one fact we borrowed: the angle at the center is twice the angle at the circumference standing on the same arc.
+
+Extend CO to a diameter CD. Equal radii make OCA isosceles: its base angles are α, so its exterior angle AOD is 2α. Repeat with OCB to obtain β and 2β.
+
+Add the pieces to get **φ = 2θ**. If the diameter lies outside the angle at C, subtract instead. The same argument also handles reflex central angles.
+
+Return to tab 00. The changing circles now come with a reason their sums agree.
